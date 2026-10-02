@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import axios from "axios";
 import { normalize } from "../utils/formatUtils";
 import { usePostalCode } from "../hooks/usePostalCode";
 import { usePhone } from "../hooks/usePhone";
@@ -12,6 +11,7 @@ import { VALIDATION_MESSAGES } from "../utils/validationMessages";
 import Button from "../atoms/Button";
 import PageHeader from "./PageHeader";
 import { axiosInstance } from "../api/axiosInstance";
+import { useMessage } from "./../hooks/useMessage";
 
 export default function BaseEntityForm({
   title,
@@ -22,15 +22,19 @@ export default function BaseEntityForm({
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showError } = useMessage();
+  BaseEntityForm;
 
-  // ラベルオブジェクトのキーから各フィールド名を動的に取得
+  // 基本5項目のフィールド名取得
   const nameField = Object.keys(labels)[0];
   const kanaField = Object.keys(labels)[1];
   const postalField = Object.keys(labels)[2];
   const addressField = Object.keys(labels)[3];
   const phoneField = Object.keys(labels)[4];
 
-  // title（例: "新規業者登録", "業者情報編集"）からエンティティ名（業者、顧客など）を自動抽出する
+  // マスターユーザー項目の判定（labelsにマスター項目が存在するか）
+  const hasMasterFields = "masterName" in labels;
+
   const entityName = title
     .replace(/情報?編集$/, "")
     .replace(/登録$/, "")
@@ -40,6 +44,10 @@ export default function BaseEntityForm({
     [nameField]: "",
     [kanaField]: "",
     [addressField]: "",
+    ...(hasMasterFields && {
+      masterName: "",
+      masterEmail: "",
+    }),
   });
 
   const { handleKanaBlurOrComposition } = useKanaNormalization(
@@ -72,7 +80,6 @@ export default function BaseEntityForm({
         .get(fetchUrl)
         .then((res) => {
           const fetchedData = res.data;
-          // 修正後（1回にまとめてスッキリさせる）
           setInputValues({
             [nameField]: fetchedData[nameField] || "",
             [kanaField]: fetchedData[kanaField] || "",
@@ -88,7 +95,7 @@ export default function BaseEntityForm({
         })
         .catch((error) => {
           console.error("データ取得エラー:", error);
-          alert("情報の取得に失敗しました。");
+          showError("情報の取得に失敗しました。");
         });
     }
   }, [
@@ -116,6 +123,7 @@ export default function BaseEntityForm({
     e.preventDefault();
     const newErrors = {};
 
+    // 基本バリデーション
     if (!inputValues[nameField]?.trim()) {
       newErrors[nameField] = VALIDATION_MESSAGES.required(labels[nameField]);
     }
@@ -144,6 +152,28 @@ export default function BaseEntityForm({
       );
     }
 
+    // 新規登録時のマスターユーザー項目のバリデーション
+    if (!isEdit && hasMasterFields) {
+      if (!inputValues.masterName?.trim()) {
+        newErrors.masterName = VALIDATION_MESSAGES.required(labels.masterName);
+      }
+
+      // メールアドレスのチェック
+      const emailValue = inputValues.masterEmail?.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // 簡易メール形式チェック正規表現
+
+      if (!emailValue) {
+        newErrors.masterEmail = VALIDATION_MESSAGES.required(
+          labels.masterEmail,
+        );
+      } else if (!emailRegex.test(emailValue)) {
+        // ★メールアドレス形式エラーメッセージを設定
+        newErrors.masterEmail = VALIDATION_MESSAGES.emailFormat(
+          labels.masterEmail,
+        );
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setHasError(true);
@@ -160,7 +190,6 @@ export default function BaseEntityForm({
       [phoneField]: phone,
     };
 
-    // 編集時は /edit/{id} へ送信
     const url = isEdit
       ? apiEndpoint.replace(/\/?$/, `/edit/${id}`)
       : apiEndpoint;
@@ -168,31 +197,43 @@ export default function BaseEntityForm({
     axiosInstance
       .post(url, submitData)
       .then((res) => {
-        const targetId = isEdit ? id : res.data[idKey];
+        const targetId = isEdit ? id : res.data?.[idKey];
         const basePath = apiEndpoint.includes("clients")
           ? "/clients"
           : "/companys";
 
-        // 自動抽出した entityName を使用してメッセージを出し分け
         const successMessage = isEdit
           ? `${entityName}情報を更新しました。`
-          : `${entityName}を登録しました。`;
+          : hasMasterFields
+            ? `${entityName}情報および代表ユーザーアカウントを登録しました。`
+            : `${entityName}情報を登録しました。`;
 
-        navigate(`${basePath}/${targetId}`, {
-          state: { message: successMessage },
-        });
+        if (targetId) {
+          navigate(`${basePath}/${targetId}`, {
+            state: { message: successMessage },
+          });
+        } else {
+          console.error(
+            "登録レスポンスからIDを取得できませんでした:",
+            res.data,
+          );
+          navigate(basePath, {
+            state: { message: successMessage },
+          });
+        }
       })
       .catch((error) => {
         console.error("送信エラー:", error);
-        alert("処理に失敗しました。入力内容を確認してください。");
+        showError("処理に失敗しました。入力内容を確認してください。");
       });
-  };
+  }; // ★ここで handleSubmit を正しく閉じる
 
   const cancelBasePath = apiEndpoint.includes("clients")
     ? "/clients"
     : "/companys";
   const cancelPath = isEdit ? `${cancelBasePath}/${id}` : cancelBasePath;
 
+  // ★コンポーネントとしての描画処理をここで行う
   return (
     <div className="content-wrapper">
       <PageHeader title={title} />
@@ -236,8 +277,8 @@ export default function BaseEntityForm({
                 name={postalField}
                 value={postalCode}
                 onChange={handlePostalChange}
-                onCompositionEnd={formatAndFetchPostalCode} // 変換確定のエンターで1発成型＆API取得
-                onBlur={formatAndFetchPostalCode} // フォーカスアウト時
+                onCompositionEnd={formatAndFetchPostalCode}
+                onBlur={formatAndFetchPostalCode}
                 className={errors[postalField] ? "field-error" : ""}
                 placeholder="郵便番号を入力(ハイフンなし)"
                 autoComplete="off"
@@ -255,7 +296,6 @@ export default function BaseEntityForm({
               placeholder="住所を入力"
             />
 
-            {/* BaseEntityForm.jsx の電話番号部分 */}
             <div className="form-group-block">
               <label>
                 {labels[phoneField]} <span className="required">(必須)</span>
@@ -272,6 +312,33 @@ export default function BaseEntityForm({
               />
               <FieldError message={errors[phoneField]} />
             </div>
+
+            {!isEdit && hasMasterFields && (
+              <>
+                <hr className="form-divider" />
+                <h3 className="form-subtitle">代表ユーザー登録</h3>
+
+                <FormInput
+                  label={labels.masterName}
+                  name="masterName"
+                  value={inputValues.masterName}
+                  onChange={handleChange}
+                  error={errors.masterName}
+                  required
+                  placeholder="例: 山田太郎"
+                />
+
+                <FormInput
+                  label={labels.masterEmail}
+                  name="masterEmail"
+                  value={inputValues.masterEmail}
+                  onChange={handleChange}
+                  error={errors.masterEmail}
+                  required
+                  placeholder="例: master@example.com"
+                />
+              </>
+            )}
 
             <div className={isEdit ? "action-buttons-form" : "action-buttons"}>
               <Button type="submit" variant="primary">

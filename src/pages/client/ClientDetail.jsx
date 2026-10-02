@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useParams, useLocation } from "react-router";
+import { Link, useParams, useLocation, useNavigate } from "react-router";
 import { useAtomValue } from "jotai";
 import { formatPhone, formatPostal } from "../../utils/formatUtils";
 import AlertMessage from "../../components/AlertMessage";
@@ -30,6 +30,8 @@ export default function ClientDetail() {
     location.state?.message || "",
   );
 
+  const navigate = useNavigate();
+
   // 共通化したカスタムフックで2段階削除を適用
   const { handleDeleteWithCheck } = useDeleteWithCheck(
     `/clients/${id}`,
@@ -54,6 +56,9 @@ export default function ClientDetail() {
       })
       .catch((error) => {
         console.error("データ取得エラー:", error);
+        if (error.response?.status === 403 || error.response?.status === 404) {
+          navigate("/clients");
+        }
       });
   }, [isAdmin, id, currentPage]);
 

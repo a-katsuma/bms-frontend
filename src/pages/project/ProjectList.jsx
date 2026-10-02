@@ -10,6 +10,7 @@ import { useLocation } from "react-router";
 import { useAtomValue } from "jotai";
 import { projectApi } from "../../api/projectApi";
 import { loginUserAtom } from "../../atoms/loginUserAtom";
+import { ORDER_ROUTE_POLICY } from "../../utils/extraWorkUtils";
 
 export default function ProjectList() {
   const [projects, setProjects] = useState([]);
@@ -56,6 +57,11 @@ export default function ProjectList() {
     {
       label: "見積状態",
       render: (p) => {
+        // 緊急・追加作業の例外の案件は見積りを通さない
+        if (p.orderRoute === ORDER_ROUTE_POLICY) {
+          return <span className="text-muted">事前承認</span>;
+        }
+
         const isExpired =
           p.deadlineDate &&
           p.deadlineDate < today &&
@@ -96,6 +102,7 @@ export default function ProjectList() {
           <Button to="/projects/add" variant="primary">
             新規案件登録
           </Button>
+          <Button to="/projects/deleted">削除済みの案件</Button>
         </div>
       )}
 

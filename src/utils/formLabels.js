@@ -21,5 +21,9 @@ export const FORM_LABELS = {
     companyPostalcode: "郵便番号",
     companyAddress: "住所",
     companyPhone: "電話番号",
+
+    // --- 以下、マスターユーザー用を追加 ---
+    masterName: "ユーザー名",
+    masterEmail: "メールアドレス",
   }
 };

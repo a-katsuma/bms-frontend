@@ -11,7 +11,6 @@ export default function BaseProjectForm({
   companies,
   errors,
   hasError,
-  serverError,
   labels,
   onChange,
   onSubmit,
@@ -25,12 +24,6 @@ export default function BaseProjectForm({
       <div className="card">
         <form onSubmit={onSubmit} className={isEdit ? "edit-form" : ""}>
           <FormAlert hasError={hasError} />
-
-          {serverError && (
-            <div className="alert alert-danger" style={{ marginBottom: "15px" }}>
-              <p>{serverError}</p>
-            </div>
-          )}
 
           <div className="form-vertical-layout">
             {/* 案件名 */}

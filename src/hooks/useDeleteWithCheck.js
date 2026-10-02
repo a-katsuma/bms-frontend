@@ -1,5 +1,6 @@
 // src/hooks/useDeleteWithCheck.js
 import { useDeleteHandler } from "./useDeleteHandler";
+import { useDialog } from "./useDialog";
 
 export function useDeleteWithCheck(
   deleteUrl,
@@ -13,6 +14,7 @@ export function useDeleteWithCheck(
     redirectUrl,
     successMessage,
   );
+  const { confirm } = useDialog();
 
   const handleDeleteWithCheck = async () => {
     try {
@@ -22,14 +24,15 @@ export function useDeleteWithCheck(
 
         // 2. 関連データがある場合のみ、1回目の確認メッセージを表示
         if (hasRelatedData) {
-          const isConfirmed = window.confirm(
+          const ok = await confirm(
             "関連データが登録されていますが削除しますか？",
+            { title: "関連データがあります", okLabel: "次へ", danger: true },
           );
-          if (!isConfirmed) return; // 「キャンセル」が選ばれたらここでストップ
+          if (!ok) return; // 「キャンセル」が選ばれたらここでストップ
         }
       }
 
-      // 3. 関連データがない場合、または1回目の確認で「はい」が選ばれた場合
+      // 3. 関連データがない場合、または1回目の確認で「次へ」が選ばれた場合
       //    既存フック（useDeleteHandler）による2回目の確認へ進む
       executeDelete();
     } catch (error) {

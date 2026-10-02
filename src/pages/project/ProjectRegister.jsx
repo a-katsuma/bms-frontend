@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router"
+import { useNavigate } from "react-router";
 import { FORM_LABELS } from "../../utils/formLabels";
 import { VALIDATION_MESSAGES } from "../../utils/validationMessages";
 import { projectApi } from "../../api/projectApi";
 import BaseProjectForm from "../../components/BaseProjectForm";
 import { useAdminGuard } from "../../hooks/useAdminGuard";
+import { useMessage } from "../../hooks/useMessage";
 
 export default function ProjectRegister() {
   // 管理者以外は案件一覧へリダイレクト
   useAdminGuard("/projects");
 
   const navigate = useNavigate();
+  const { showError, clearMessage } = useMessage();
 
   const labels = FORM_LABELS.project;
 
@@ -28,7 +30,6 @@ export default function ProjectRegister() {
   const [companies, setCompanies] = useState([]);
   const [errors, setErrors] = useState({});
   const [hasError, setHasError] = useState(false);
-  const [serverError, setServerError] = useState("");
 
   useEffect(() => {
     projectApi
@@ -39,6 +40,7 @@ export default function ProjectRegister() {
       })
       .catch((err) => {
         console.error("フォームデータ取得エラー:", err);
+        showError("顧客・業者の一覧の取得に失敗しました。");
       });
   }, []);
 
@@ -77,7 +79,7 @@ export default function ProjectRegister() {
 
     setHasError(false);
     setErrors({});
-    setServerError("");
+    clearMessage();
 
     projectApi
       .add(projectForm)
@@ -98,22 +100,18 @@ export default function ProjectRegister() {
       })
       .catch((err) => {
         console.error("登録エラー詳細:", err); // デバッグ用にコンソール出力
-        if (err.response && err.response.status === 400) {
-          const errorData = err.response.data;
-          if (Array.isArray(errorData)) {
-            const errorMap = {};
-            errorData.forEach((error) => {
-              errorMap[error.field] = error.defaultMessage;
-            });
-            setErrors(errorMap);
-            setHasError(true);
-          } else {
-            setServerError("入力内容にエラーがあります。");
-            setHasError(true);
-          }
-        } else {
-          setServerError("登録処理に失敗しました。");
+        const errorData = err.response?.data;
+        if (err.response?.status === 400 && Array.isArray(errorData)) {
+          // 項目ごとのエラー → 入力欄の下に出す
+          const errorMap = {};
+          errorData.forEach((error) => {
+            errorMap[error.field] = error.defaultMessage;
+          });
+          setErrors(errorMap);
           setHasError(true);
+        } else {
+          // それ以外 → 画面上部の共通欄
+          showError(errorData?.errorMessage || "登録処理に失敗しました。");
         }
       });
   };
@@ -126,7 +124,6 @@ export default function ProjectRegister() {
       companies={companies}
       errors={errors}
       hasError={hasError}
-      serverError={serverError}
       labels={labels}
       onChange={handleChange}
       onSubmit={handleSubmit}

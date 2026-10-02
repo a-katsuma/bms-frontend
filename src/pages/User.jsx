@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useSetAtom } from "jotai";
 import { loginUserAtom } from "../atoms/loginUserAtom";
 import { userApi } from "../api/userApi";
@@ -15,26 +15,42 @@ export default function User() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const user = await userApi.login({ loginId, password });
-      setLoginUser(user);
+      // 1. ログイン処理を実行
+      await userApi.login({ loginId, password });
+
+      // 2. ログイン直後に current を取得（businessPolicyAgreed を取得するため）
+      const currentUserData = await userApi.getCurrentUser();
+
+      // 3. ユーザー情報と businessPolicyAgreed を結合して Atom に保存
+      setLoginUser({
+        ...currentUserData.user,
+        businessPolicyAgreed: currentUserData.businessPolicyAgreed,
+        businessPolicySet: currentUserData.businessPolicySet,
+      });
+
+      // 4. ホームへ遷移（App.jsx 側のガードで未設定なら自動的に設定画面へ弾かれます）
       navigate("/");
     } catch (err) {
       console.error("ログインエラー:", err);
-      setError("ログインIDまたはパスワードが間違っています。");
+      // バックエンドからのメッセージ(401/403)を取得し、なければデフォルトメッセージを表示
+      const message =
+        err.response?.data || "ログインIDまたはパスワードが間違っています。";
+      setError(message);
     }
   };
 
   return (
     <div className="login-page">
       <div className="main-content login-content-wrapper">
-        <h1 className="login-image">BMS System</h1>
         <div className="login-box">
+          <h1 className="login-image">BMS System</h1>
+
           <h2 className="login-title">ログイン</h2>
 
           {error && <p className="error-text login-error-text">{error}</p>}
 
           <form onSubmit={handleLogin}>
-            <div className="login-form-group">
+            <div className="login-form-group-mb">
               <label className="login-label">ログインID</label>
               <input
                 type="text"
@@ -63,6 +79,10 @@ export default function User() {
             >
               ログイン
             </Button>
+
+            <div className="login-link">
+              <Link to="/forgot-password">パスワードをお忘れですか？</Link>
+            </div>
           </form>
         </div>
       </div>

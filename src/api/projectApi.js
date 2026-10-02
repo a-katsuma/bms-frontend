@@ -17,6 +17,20 @@ export const projectApi = {
     return response.data;
   },
 
+
+  // 削除済みの案件一覧（管理者のみ）
+  getDeletedList: async (page = 1) => {
+    const response = await axiosInstance.get("/projects/deleted", { params: { page } });
+    return response.data;
+  },
+
+  // 復元（管理者のみ）
+  restore: async (id) => {
+    const response = await axiosInstance.post(`/projects/${id}/restore`);
+    return response.data;
+  },
+
+
   // 案件新規登録用のフォームデータ（顧客・業者一覧）取得
   getFormData: async () => {
     const response = await axiosInstance.get("/projects/form-data");

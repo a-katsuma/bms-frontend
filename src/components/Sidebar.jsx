@@ -5,6 +5,7 @@ import { axiosInstance } from "../api/axiosInstance";
 
 export default function Sidebar({ roleFlag }) {
   const isAdmin = roleFlag === 1;
+  const isRepresentative = roleFlag === 2;
   const setLoginUser = useSetAtom(loginUserAtom);
   const navigate = useNavigate();
 
@@ -40,12 +41,39 @@ export default function Sidebar({ roleFlag }) {
           <li>
             <NavLink to="/projects">案件管理</NavLink>
           </li>
-          {/* 管理者のみ業者管理 */}
+          {/* 管理者のみ：緊急・追加作業（見積りを通さない例外の受注） */}
           {isAdmin && (
             <li>
-              <NavLink to="/companys">業者管理</NavLink>
+              <NavLink to="/extra-works">緊急・追加作業</NavLink>
             </li>
           )}
+
+          {/* 管理者のみ業者管理 */}
+          {isAdmin && (
+            <>
+              <li>
+                <NavLink to="/companys">業者管理</NavLink>
+              </li>
+              <li>
+                <NavLink to="/masters">常用項目管理</NavLink>
+              </li>
+            </>
+          )}
+          {isRepresentative && (
+            <>
+              <li>
+                <NavLink to="/company/users">ユーザー管理</NavLink>
+              </li>
+              {/* ★ 代表ユーザーのみ「事前承認設定」を表示 */}
+              <li>
+                <NavLink to="/company/business-policy">事前承認設定</NavLink>{" "}
+                {/* ★修正 */}
+              </li>
+            </>
+          )}
+          <li>
+            <NavLink to="/account">マイページ</NavLink>
+          </li>
         </ul>
 
         {/* ログアウトボタンエリア */}

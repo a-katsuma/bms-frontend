@@ -8,6 +8,7 @@ import { getRemainingDaysText } from "../utils/dateUtils";
 import { projectApi } from "../api/projectApi";
 import { loginUserAtom } from "../atoms/loginUserAtom";
 import NoDataMessage from "../components/NoDataMessage";
+import { baseApi } from "../api/baseApi";
 
 export default function Home() {
   const loginUser = useAtomValue(loginUserAtom);
@@ -22,6 +23,7 @@ export default function Home() {
 
   const [bottomList, setBottomList] = useState([]);
   const [bottomTotalPages, setBottomTotalPages] = useState(1);
+  const [baseAlerts, setBaseAlerts] = useState([]);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -54,6 +56,18 @@ export default function Home() {
         console.error("ダッシュボードデータの取得に失敗しました", error);
       });
   }, [isAdmin, topPage, bottomPage]);
+
+  // 現況確認表とベース明細の差（管理者のみ）
+  useEffect(() => {
+    if (!isAdmin) {
+      setBaseAlerts([]);
+      return;
+    }
+    baseApi
+      .getDiffAlerts()
+      .then(setBaseAlerts)
+      .catch((error) => console.error("ベース差分アラート取得エラー:", error));
+  }, [isAdmin]);
 
   // ★ 上部セクション用のカラム定義
   const topColumns = [
@@ -136,14 +150,37 @@ export default function Home() {
   return (
     <div className={`content-wrapper ${isAdmin ? "" : "theme-contractee"}`}>
       <PageHeader title="ダッシュボード">
-       <div className="login-status">
-  お疲れ様です、
-  <strong>
-    {loginUser?.name}さん
-    {loginUser?.companyName && `：${loginUser.companyName}`}
-  </strong>
-</div>
+        <div className="login-status">
+          お疲れ様です、
+          <strong>
+            {loginUser?.name}さん
+            {loginUser?.companyName && `：${loginUser.companyName}`}
+          </strong>
+        </div>
       </PageHeader>
+
+      {isAdmin && baseAlerts.length > 0 && (
+        <div className="alert alert-danger">
+          <strong>
+            現況確認表とベース明細に差がある案件が {baseAlerts.length}{" "}
+            件あります。
+          </strong>
+          <ul className="alert-list">
+            {baseAlerts.map((a) => (
+              <li key={a.projectId}>
+                {a.clientName}／{a.projectName}
+                {a.companyName && `（${a.companyName}）`}：差分 {a.diffCount}件
+                <Button
+                  to={`/projects/${a.projectId}/base`}
+                  className="btn-sm ml-10"
+                >
+                  ベース明細を開く
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="dashboard-grid">
         {/* 上部セクション */}

@@ -8,6 +8,7 @@ import Button from "../../atoms/Button";
 import PageHeader from "../../components/PageHeader";
 import { projectApi } from "../../api/projectApi";
 import { useAdminGuard } from "../../hooks/useAdminGuard";
+import { useMessage } from "../../hooks/useMessage";
 
 export default function ProjectEdit() {
   const { id } = useParams();
@@ -16,6 +17,7 @@ export default function ProjectEdit() {
   useAdminGuard(`/projects/${id}`);
 
   const navigate = useNavigate();
+  const { showError, clearMessage } = useMessage();
 
   const labels = FORM_LABELS.project;
 
@@ -35,7 +37,6 @@ export default function ProjectEdit() {
 
   const [errors, setErrors] = useState({});
   const [hasError, setHasError] = useState(false);
-  const [serverError, setServerError] = useState("");
 
   useEffect(() => {
     projectApi
@@ -51,8 +52,7 @@ export default function ProjectEdit() {
       })
       .catch((err) => {
         console.error("データ取得エラー:", err);
-        setServerError("案件情報の取得に失敗しました。");
-        setHasError(true);
+        showError("案件情報の取得に失敗しました。");
       });
   }, [id]);
 
@@ -100,7 +100,7 @@ export default function ProjectEdit() {
 
     setHasError(false);
     setErrors({});
-    setServerError("");
+    clearMessage();
 
     projectApi
       .update(id, projectForm)
@@ -110,23 +110,19 @@ export default function ProjectEdit() {
         });
       })
       .catch((err) => {
-        if (err.response && err.response.status === 400) {
-          const errorData = err.response.data;
-          if (Array.isArray(errorData)) {
-            const errorMap = {};
-            errorData.forEach((error) => {
-              errorMap[error.field] = error.defaultMessage;
-            });
-            setErrors(errorMap);
-            setHasError(true);
-          } else {
-            setServerError("入力内容にエラーがあります。");
-            setHasError(true);
-          }
-        } else {
-          console.error("更新エラー:", err);
-          setServerError("更新処理に失敗しました。");
+        console.error("更新エラー:", err);
+        const errorData = err.response?.data;
+        if (err.response?.status === 400 && Array.isArray(errorData)) {
+          // 項目ごとのエラー → 入力欄の下に出す
+          const errorMap = {};
+          errorData.forEach((error) => {
+            errorMap[error.field] = error.defaultMessage;
+          });
+          setErrors(errorMap);
           setHasError(true);
+        } else {
+          // それ以外 → 画面上部の共通欄
+          showError(errorData?.errorMessage || "更新処理に失敗しました。");
         }
       });
   };
@@ -138,15 +134,6 @@ export default function ProjectEdit() {
       <div className="card">
         <form onSubmit={handleSubmit} className="edit-form">
           <FormAlert hasError={hasError} />
-
-          {serverError && (
-            <div
-              className="alert alert-danger"
-              style={{ marginBottom: "15px" }}
-            >
-              <p>{serverError}</p>
-            </div>
-          )}
 
           <div className="form-vertical-layout">
             <div className="form-group-block">

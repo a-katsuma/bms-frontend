@@ -1,6 +1,6 @@
 import BaseEntityForm from "../../components/BaseEntityForm";
-import { FORM_LABELS } from "../../utils/formLabels";
 import { useAdminGuard } from "../../hooks/useAdminGuard";
+import { FORM_LABELS } from "../../utils/formLabels";
 
 export default function ClientRegister() {
   // 管理者以外は自動で "/clients" へリダイレクト

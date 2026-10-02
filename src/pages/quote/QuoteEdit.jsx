@@ -5,10 +5,12 @@ import Button from "../../atoms/Button";
 import DetailList from "../../components/DetailList";
 import { projectApi } from "../../api/projectApi";
 import { useAdminGuard } from "./../../hooks/useAdminGuard";
+import { useMessage } from './../../hooks/useMessage';
 
 export default function QuoteEdit() {
   const { pid, id } = useParams();
   const navigate = useNavigate();
+  const { showError } = useMessage();
 
   // 管理者以外はプロジェクト詳細へリダイレクト
   useAdminGuard(`/projects/${pid}`);
@@ -57,7 +59,7 @@ export default function QuoteEdit() {
       })
       .catch((error) => {
         console.error("更新エラー:", error);
-        alert("更新に失敗しました。");
+        showError("更新に失敗しました。");
       });
   };
 

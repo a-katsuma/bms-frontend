@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { useAtomValue } from "jotai";
 import AlertMessage from "../../components/AlertMessage";
 import { clientApi } from "../../api/clientApi";
@@ -8,18 +8,22 @@ import PageHeader from "../../components/PageHeader";
 import Loading from "../../components/Loading";
 import DetailList from "../../components/DetailList";
 import NoDataMessage from "../../components/NoDataMessage";
-import { useDeleteWithCheck } from "../../hooks/useDeleteWithCheck";
 import { loginUserAtom } from "../../atoms/loginUserAtom";
+import { useDialog } from "../../hooks/useDialog";
+import { useMessage } from "../../hooks/useMessage";
 
 export default function ClientDocuments() {
   const { id } = useParams();
 
   const loginUser = useAtomValue(loginUserAtom);
   const isAdmin = loginUser?.roleFlag === 1;
+  const { confirm } = useDialog();
+  const { showError, clearMessage } = useMessage();
 
   const [client, setClient] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     docTitle: "",
@@ -28,29 +32,42 @@ export default function ClientDocuments() {
     file: null,
   });
 
-  // 削除処理に共通カスタムフックを使用（対象資料の削除パスを設定）
-  // ※個別削除のため、削除対象のdocIdを渡せるようにカスタムフックをラップ、または個別にハンドリング
-  const handleDelete = (docId) => {
-    if (window.confirm("資料を削除しますか？")) {
-      clientApi.deleteDocument(id, docId)
-        .then((res) => {
-          setDocuments((prevDocs) => prevDocs.filter((doc) => doc.docId !== docId));
-          setSuccessMessage(res.message);
-        })
-        .catch((error) => {
-          console.error("削除エラー:", error);
-        });
-    }
+  // 資料の削除（1件ずつ）
+  const handleDelete = async (docId) => {
+    const ok = await confirm("資料を削除しますか？", {
+      title: "資料の削除",
+      okLabel: "削除",
+      danger: true,
+    });
+    if (!ok) return;
+    clientApi
+      .deleteDocument(id, docId)
+      .then((res) => {
+        setDocuments((prevDocs) =>
+          prevDocs.filter((doc) => doc.docId !== docId),
+        );
+        clearMessage();
+        setSuccessMessage(res.message);
+      })
+      .catch((error) => {
+        showError(
+          error.response?.data?.errorMessage || "資料の削除に失敗しました。",
+        );
+      });
   };
 
   useEffect(() => {
-    clientApi.getDocuments(id, isAdmin)
+    clientApi
+      .getDocuments(id, isAdmin)
       .then((res) => {
         setClient(res.client);
         setDocuments(res.documents || []);
       })
       .catch((error) => {
         console.error("データ取得エラー:", error);
+        if (error.response?.status === 403 || error.response?.status === 404) {
+          navigate("/clients");
+        }
       });
   }, [isAdmin, id]);
 
@@ -67,7 +84,7 @@ export default function ClientDocuments() {
     e.preventDefault();
 
     if (!formData.docTitle.trim() || !formData.file) {
-      alert("資料名とファイルは必須です。");
+      showError("資料名とファイルは必須です。");
       return;
     }
 
@@ -77,8 +94,10 @@ export default function ClientDocuments() {
     data.append("docRemarks", formData.docRemarks || "");
     data.append("file", formData.file);
 
-    clientApi.addDocument(id, data)
+    clientApi
+      .addDocument(id, data)
       .then((res) => {
+        clearMessage();
         setSuccessMessage(res.message);
         setFormData({
           docTitle: "",
@@ -95,6 +114,9 @@ export default function ClientDocuments() {
       })
       .catch((error) => {
         console.error("登録エラー:", error);
+        showError(
+          error.response?.data?.errorMessage || "資料の登録に失敗しました。",
+        );
       });
   };
 
@@ -112,7 +134,7 @@ export default function ClientDocuments() {
           value={formData.docTitle}
           onChange={handleChange}
           required
-          style={{ width: "100%", boxSizing: "border-box" }}
+          className="input-full"
           placeholder="資料名を入力"
         />
       ),
@@ -124,7 +146,6 @@ export default function ClientDocuments() {
           name="docType"
           value={formData.docType}
           onChange={handleChange}
-          style={{ width: "100%" }}
         >
           <option value="機器一覧表">機器一覧表</option>
           <option value="機器配置図">機器配置図</option>
@@ -140,14 +161,7 @@ export default function ClientDocuments() {
           name="docRemarks"
           value={formData.docRemarks}
           onChange={handleChange}
-          style={{
-            width: "100%",
-            height: "80px",
-            padding: "10px",
-            border: "1px solid #dcdde1",
-            borderRadius: "8px",
-            boxSizing: "border-box",
-          }}
+          className="textarea-sm"
           placeholder="備考を入力（任意）"
         />
       ),
@@ -170,18 +184,11 @@ export default function ClientDocuments() {
     <div className={`content-wrapper ${isAdmin ? "" : "theme-contractee"}`}>
       <PageHeader title="関連資料一覧" />
 
-      <div style={{ marginBottom: "25px" }}>
-        <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
-          対象顧客：
-        </span>
+      <div className="mb-25">
+        <span className="page-target-label">対象顧客：</span>
         <Link
           to={`/clients/${client.clientId}`}
-          style={{
-            fontWeight: "bold",
-            textDecoration: "none",
-            color: "var(--accent)",
-            fontSize: "1.1rem",
-          }}
+          className="page-target-link"
         >
           {client.clientName}
         </Link>
@@ -263,7 +270,7 @@ export default function ClientDocuments() {
                   </div>
 
                   {isAdmin && (
-                    <div style={{ marginTop: "auto", paddingTop: "15px" }}>
+                    <div className="doc-item-actions">
                       <Button
                         type="button"
                         variant="danger"
@@ -283,7 +290,7 @@ export default function ClientDocuments() {
         )}
 
         {!isAdmin && (
-          <div className="action-buttons" style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+          <div className="action-buttons flex-row mt-20">
             <Button to={`/clients/${client.clientId}`} variant="cancel">
               顧客詳細へ戻る
             </Button>

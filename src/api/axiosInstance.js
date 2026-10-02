@@ -1,4 +1,5 @@
 import axios from "axios";
+import { showGlobalError } from "../atoms/messageAtom";
 
 // 共通のベースURLを持つAxiosインスタンスを作成
 export const axiosInstance = axios.create({
@@ -16,11 +17,17 @@ axiosInstance.interceptors.response.use(
     const status = error.response ? error.response.status : null;
 
     if (status === 403) {
-      alert("アクセス権限がありません（403 Forbidden）。");
+      showGlobalError("アクセス権限がありません（403 Forbidden）。", {
+        keep: true,
+      });
     } else if (status === 500) {
-      alert("サーバー側でエラーが発生しました。");
+      showGlobalError("サーバー側でエラーが発生しました。", { keep: true });
+    } else if (!error.response) {
+      showGlobalError(
+        "サーバーに接続できませんでした。通信状態を確認してください。",
+        { keep: true },
+      );
     }
-    // エラーをそのまま呼び出し元に返す（個別にcatchしたい場合のため）
     return Promise.reject(error);
-  }
+  },
 );
