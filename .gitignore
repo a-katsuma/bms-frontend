@@ -37,3 +37,6 @@ ehthumbs.db
 
 # テストカバレッジ
 coverage
+
+# アップロードされたファイル（Backend の uploads と同じ。リポジトリに入れない）
+uploads/

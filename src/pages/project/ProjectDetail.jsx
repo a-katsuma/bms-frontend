@@ -14,8 +14,13 @@ import { loginUserAtom } from "../../atoms/loginUserAtom";
 import BillingSummaryCard from "../../components/project/BillingSummaryCard";
 import ExtraWorkProjectCard from "../../components/extraWork/ExtraWorkProjectCard";
 import { ORDER_ROUTE_POLICY } from "../../utils/extraWorkUtils";
+import { formatDateTime } from "../../utils/baseUtils";
 import { useDialog } from "../../hooks/useDialog";
 import { useMessage } from "../../hooks/useMessage";
+import { fileUrl } from "../../config";
+
+
+const QUOTE_UNJUDGED = "未判定";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -42,6 +47,7 @@ export default function ProjectDetail() {
   const [quoteFile, setQuoteFile] = useState(null);
   const [deadlineDate, setDeadlineDate] = useState("");
   const [registerAsOrdered, setRegisterAsOrdered] = useState(false);
+  const [requoteOpen, setRequoteOpen] = useState(false); // 再見積りの登録フォームを表示中
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -110,11 +116,12 @@ export default function ProjectDetail() {
     fetchProjectDetail();
   }, [id, isAdmin]);
 
+  // 見積りの登録（初回・再見積り）
   const handleQuoteSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData();
     formData.append("file", quoteFile);
-    formData.append("quoteStatus", "未判定");
+    formData.append("quoteStatus", QUOTE_UNJUDGED);
     formData.append("registerAsOrdered", registerAsOrdered);
     if (!registerAsOrdered) {
       formData.append("deadlineDate", deadlineDate);
@@ -122,16 +129,17 @@ export default function ProjectDetail() {
 
     projectApi
       .addQuote(id, formData)
-      .then(() => {
+      .then((res) => {
         clearMessage();
         setSuccessMessage(
           registerAsOrdered
             ? "見積を発注済みとして登録しました。"
-            : "見積情報を登録しました。",
+            : res?.message || "見積情報を登録しました。",
         );
         setQuoteFile(null);
         setDeadlineDate("");
         setRegisterAsOrdered(false);
+        setRequoteOpen(false);
         fetchProjectDetail();
       })
       .catch((error) => {
@@ -142,26 +150,57 @@ export default function ProjectDetail() {
       });
   };
 
-  const handleQuoteDelete = async (quoteId) => {
-    const ok = await confirm("最新の見積を削除しますか？", {
-      title: "見積の削除",
-      okLabel: "削除",
-      danger: true,
-    });
-    if (!ok) return;
-    projectApi
-      .deleteQuote(id, quoteId)
-      .then(() => {
+  // 見積りの操作（削除・復元・完全に削除）の共通処理
+  const runQuoteAction = (request, failMessage) =>
+    request
+      .then((res) => {
         clearMessage();
-        setSuccessMessage("見積情報を削除しました。");
+        setSuccessMessage(res?.message || "");
+        setRequoteOpen(false);
         fetchProjectDetail();
       })
       .catch((error) => {
-        console.error("見積削除エラー:", error);
-        showError(
-          error.response?.data?.errorMessage || "見積の削除に失敗しました。",
-        );
+        console.error(failMessage, error);
+        showError(error.response?.data?.errorMessage || failMessage);
       });
+
+  // 削除（論理削除）。isLatest は最新の見積りか
+  const handleQuoteDelete = async (quote, isLatest) => {
+    const target = isLatest ? "最新の見積り" : `${quote.quoteDate} 登録の見積り`;
+    const ok = await confirm(
+      `${target}を削除しますか？\n削除済みの見積りに移り、あとで復元できます（判定履歴は残ります）。`,
+      { title: "見積りの削除", okLabel: "削除", danger: true },
+    );
+    if (!ok) return;
+    runQuoteAction(
+      projectApi.deleteQuote(id, quote.quoteId),
+      "見積りの削除に失敗しました。",
+    );
+  };
+
+  const handleQuoteRestore = async (quote) => {
+    const ok = await confirm(`${quote.quoteDate} 登録の見積りを復元しますか？`, {
+      title: "見積りの復元",
+      okLabel: "復元",
+    });
+    if (!ok) return;
+    runQuoteAction(
+      projectApi.restoreQuote(id, quote.quoteId),
+      "見積りの復元に失敗しました。",
+    );
+  };
+
+  // 完全に削除（物理削除）
+  const handleQuotePurge = async (quote) => {
+    const ok = await confirm(
+      `${quote.quoteDate} 登録の見積りを完全に削除しますか？\n判定履歴と PDF ファイルも削除され、元に戻せません。`,
+      { title: "見積りの完全な削除", okLabel: "完全に削除", danger: true },
+    );
+    if (!ok) return;
+    runQuoteAction(
+      projectApi.purgeQuote(id, quote.quoteId),
+      "見積りの完全な削除に失敗しました。",
+    );
   };
 
   const handleJudge = async (quoteId, status) => {
@@ -194,6 +233,8 @@ export default function ProjectDetail() {
   const {
     project,
     latestQuote,
+    pastQuotes = [], // 過去の受注（最新以外で、発注になった見積りだけ）
+    deletedQuotes = [], // 管理者のみ
     historyList = [],
     billingSummary,
   } = projectData;
@@ -201,11 +242,12 @@ export default function ProjectDetail() {
   // 例外の案件（緊急・追加作業。見積りを通さず、事前承認で受けた案件）
   const isException = project.orderRoute === ORDER_ROUTE_POLICY;
 
+  const isUnjudged = latestQuote?.quoteStatus === QUOTE_UNJUDGED;
   const isExpired =
     latestQuote &&
     latestQuote.deadlineDate &&
     latestQuote.deadlineDate < today &&
-    latestQuote.quoteStatus === "未判定";
+    isUnjudged;
 
   const projectDetailItems = [
     {
@@ -228,19 +270,21 @@ export default function ProjectDetail() {
     },
   ];
 
+  const pdfLink = (filepath, label) => (
+    <a
+       href={fileUrl(filepath)}
+      target="_blank"
+      rel="noreferrer"
+    >
+      {label}
+    </a>
+  );
+
   const latestQuoteDetailItems = latestQuote
     ? [
         {
           label: "見積ファイル",
-          value: (
-            <a
-              href={`http://localhost:8080/${latestQuote.quoteFilepath}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              PDFを表示
-            </a>
-          ),
+          value: pdfLink(latestQuote.quoteFilepath, "PDFを表示"),
         },
         { label: "現在の判定状態", value: latestQuote.quoteStatus },
         {
@@ -258,27 +302,129 @@ export default function ProjectDetail() {
             </span>
           ),
         },
-        { label: "最終更新日", value: latestQuote.quoteDate },
+        { label: "登録日", value: latestQuote.quoteDate },
       ]
     : [];
 
-  const historyColumns = [
-    { label: "判定日", key: "quoteDate" },
+  // 過去の受注（最新以外で、発注になった見積りだけ。新しい順）
+  // 値上げなどで見積りが変わったとき、以前どの内容で受注していたかを見るため
+  const pastQuoteColumns = [
+    { label: "登録日", key: "quoteDate" },
+    { label: "判定者", render: (q) => q.judgeUser || "-" },
+    { label: "ファイル", render: (q) => pdfLink(q.quoteFilepath, "閲覧") },
+    ...(isAdmin
+      ? [
+          {
+            label: "操作",
+            render: (q) => (
+              <Button
+                variant="danger"
+                className="btn-sm"
+                onClick={() => handleQuoteDelete(q, false)}
+              >
+                削除
+              </Button>
+            ),
+          },
+        ]
+      : []),
+  ];
+
+  // 削除済みの見積り（管理者のみ。新しく削除した順）
+  const deletedQuoteColumns = [
+    { label: "登録日", key: "quoteDate" },
     { label: "判定状態", key: "quoteStatus" },
-    { label: "判定者", render: (h) => h.judgeUser || "-" },
+    { label: "削除日時", render: (q) => formatDateTime(q.deletedAt) },
+    { label: "ファイル", render: (q) => pdfLink(q.quoteFilepath, "閲覧") },
     {
-      label: "ファイル",
-      render: (h) => (
-        <a
-          href={`http://localhost:8080/${h.quoteFilepath}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          閲覧
-        </a>
+      label: "操作",
+      render: (q) => (
+        <div className="btn-row-sm">
+          <Button className="btn-sm" onClick={() => handleQuoteRestore(q)}>
+            復元
+          </Button>
+          <Button
+            variant="danger"
+            className="btn-sm"
+            onClick={() => handleQuotePurge(q)}
+            disabled={q.baseVersionCount > 0}
+          >
+            完全に削除
+          </Button>
+        </div>
       ),
     },
   ];
+
+  const historyColumns = [
+    { label: "判定日", key: "quoteDate" },
+    {
+      label: "判定状態",
+      render: (h) => (
+        <>
+          {h.quoteStatus}
+          {h.quoteDeleted && (
+            <span className="text-muted">（削除済みの見積り）</span>
+          )}
+        </>
+      ),
+    },
+    { label: "判定者", render: (h) => h.judgeUser || "-" },
+    { label: "ファイル", render: (h) => pdfLink(h.quoteFilepath, "閲覧") },
+  ];
+
+  // 見積りの登録フォーム（初回・再見積りで共通。「発注済みとして登録」は初回だけ）
+  const quoteFormElement = (
+    <form onSubmit={handleQuoteSubmit}>
+      <div className="form-group-block mb-15">
+        <label>見積PDFファイルを選択</label>
+        <input
+          type="file"
+          accept=".pdf"
+          required
+          onChange={(e) => setQuoteFile(e.target.files[0])}
+        />
+      </div>
+
+      {!latestQuote && (
+        <div className="form-group-block mb-15">
+          <label>
+            <input
+              type="checkbox"
+              checked={registerAsOrdered}
+              onChange={(e) => setRegisterAsOrdered(e.target.checked)}
+            />{" "}
+            発注済みとして登録する（運用中案件の取り込み用）
+          </label>
+        </div>
+      )}
+
+      {!registerAsOrdered && (
+        <div className="form-group-block mb-15">
+          <label>判定期限</label>
+          <input
+            type="date"
+            value={deadlineDate}
+            onChange={(e) => setDeadlineDate(e.target.value)}
+            required
+          />
+        </div>
+      )}
+
+      <Button type="submit" variant="primary" className="btn-submit-quote">
+        登録する
+      </Button>
+      {latestQuote && (
+        <Button
+          variant="cancel"
+          className="ml-10"
+          onClick={() => setRequoteOpen(false)}
+        >
+          キャンセル
+        </Button>
+      )}
+    </form>
+  );
 
   return (
     <div className={`content-wrapper ${isAdmin ? "" : "theme-contractee"}`}>
@@ -352,23 +498,33 @@ export default function ProjectDetail() {
 
                 {isAdmin ? (
                   <div className="action-buttons-form mb-20">
-                    <Button
-                      to={`/projects/${project.projectId}/quotes/edit/${latestQuote.quoteId}`}
-                      variant="primary"
-                    >
-                      編集
-                    </Button>
+                    {isUnjudged && (
+                      <Button
+                        to={`/projects/${project.projectId}/quotes/edit/${latestQuote.quoteId}`}
+                        variant="primary"
+                      >
+                        判定期限を変更
+                      </Button>
+                    )}
+                    {!isUnjudged && !requoteOpen && (
+                      <Button
+                        variant="primary"
+                        onClick={() => setRequoteOpen(true)}
+                      >
+                        再見積りを登録
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       variant="danger"
-                      onClick={() => handleQuoteDelete(latestQuote.quoteId)}
+                      onClick={() => handleQuoteDelete(latestQuote, true)}
                     >
                       削除
                     </Button>
                   </div>
                 ) : (
                   <div className="mb-20">
-                    {latestQuote.quoteStatus === "未判定" && !isExpired ? (
+                    {isUnjudged && !isExpired ? (
                       <>
                         <p>この見積を判定する</p>
                         <div className="action-buttons quote-action-buttons flex-row">
@@ -401,11 +557,22 @@ export default function ProjectDetail() {
                           </Button>
                         </div>
                       </>
-                    ) : latestQuote.quoteStatus === "未判定" && isExpired ? (
+                    ) : isUnjudged && isExpired ? (
                       <p className="text-danger">
                         ※有効期限が過ぎているため、判定はできません。
                       </p>
                     ) : null}
+                  </div>
+                )}
+
+                {/* 再見積り（管理者。最新の見積りが判定済みのとき） */}
+                {isAdmin && requoteOpen && (
+                  <div className="add-quote-area mb-20">
+                    <h4 className="section-title">再見積りの登録</h4>
+                    <p className="note mb-10">
+                      ※今の見積りが発注済みなら「過去の受注」に残ります。差戻し・失注の見積りは、判定履歴から確認できます。
+                    </p>
+                    {quoteFormElement}
                   </div>
                 )}
               </>
@@ -414,56 +581,32 @@ export default function ProjectDetail() {
                 <p className="no-quote-msg">
                   現在、登録されている見積はありません。
                 </p>
-
-                {isAdmin && (
-                  <form onSubmit={handleQuoteSubmit}>
-                    <div className="form-group-block mb-15">
-                      <label>見積PDFファイルを選択</label>
-                      <input
-                        type="file"
-                        accept=".pdf"
-                        required
-                        onChange={(e) => setQuoteFile(e.target.files[0])}
-                      />
-                    </div>
-
-                    <div className="form-group-block mb-15">
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={registerAsOrdered}
-                          onChange={(e) =>
-                            setRegisterAsOrdered(e.target.checked)
-                          }
-                        />{" "}
-                        発注済みとして登録する（運用中案件の取り込み用）
-                      </label>
-                    </div>
-
-                    {!registerAsOrdered && (
-                      <div className="form-group-block mb-15">
-                        <label>判定期限</label>
-                        <input
-                          type="date"
-                          value={deadlineDate}
-                          onChange={(e) => setDeadlineDate(e.target.value)}
-                          required
-                        />
-                      </div>
-                    )}
-
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      className="btn-submit-quote"
-                    >
-                      登録する
-                    </Button>
-                  </form>
-                )}
+                {isAdmin && quoteFormElement}
               </div>
             )}
 
+            {/* 過去の受注（最新以外で、発注になった見積りだけ。折りたたみ） */}
+            {pastQuotes.length > 0 && (
+              <details className="mb-20">
+                <summary>
+                  過去の受注（発注した見積り {pastQuotes.length}件）
+                </summary>
+                <DataTable columns={pastQuoteColumns} data={pastQuotes} />
+              </details>
+            )}
+
+            {/* 削除済みの見積り（管理者のみ。折りたたみ） */}
+            {isAdmin && deletedQuotes.length > 0 && (
+              <details className="mb-20">
+                <summary>削除済みの見積り（{deletedQuotes.length}件）</summary>
+                <DataTable columns={deletedQuoteColumns} data={deletedQuotes} />
+                <p className="note-sm mt-10">
+                  ※ベース明細の元の見積りになっている見積りは、完全には削除できません。
+                </p>
+              </details>
+            )}
+
+            <h4 className="section-title">判定履歴</h4>
             <DataTable
               columns={historyColumns}
               data={historyList}

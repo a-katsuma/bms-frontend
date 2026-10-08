@@ -19,8 +19,11 @@ export const userApi = {
     return response.data;
   },
 
-  toggleStatus: async (userId) => {
-    const response = await axiosInstance.patch(`/users/${userId}/status`);
+  // アカウントの有効／無効を指定して変更（isActive：1＝有効、0＝無効）
+  setStatus: async (userId, isActive) => {
+    const response = await axiosInstance.put(`/users/${userId}/status`, {
+      isActive,
+    });
     return response.data;
   },
 
@@ -34,7 +37,7 @@ export const userApi = {
 
   // メールアドレス変更（管理者代理）
   updateEmail: async (userId, newEmail) => {
-    const response = await axiosInstance.patch(`/users/${userId}/email`, {
+    const response = await axiosInstance.put(`/users/${userId}/email`, {
       email: newEmail,
     });
     return response.data;
@@ -42,7 +45,7 @@ export const userApi = {
 
   // 代表ユーザーの交代
   transferMaster: async (companyId, newMasterUserId) => {
-    const response = await axiosInstance.patch(
+    const response = await axiosInstance.put(
       `/users/companys/${companyId}/master/transfer`,
       { newMasterUserId },
     );
@@ -68,7 +71,7 @@ export const userApi = {
 
   // 本人がログイン後にパスワード変更
   changeMyPassword: async (currentPassword, newPassword) => {
-    const response = await axiosInstance.post("/users/me/password", {
+    const response = await axiosInstance.put("/users/me/password", {
       currentPassword,
       newPassword,
     });
@@ -77,7 +80,7 @@ export const userApi = {
 
   // 本人がログイン後にメール変更
   updateMyEmail: async (currentPassword, newEmail) => {
-    const response = await axiosInstance.patch("/users/me/email", {
+    const response = await axiosInstance.put("/users/me/email", {
       currentPassword,
       newEmail,
     });
@@ -100,36 +103,39 @@ export const userApi = {
 
   // 一般ユーザーのメールアドレスを変更(代表ユーザー代理)
   updateGeneralUserEmail: async (userId, newEmail) => {
-    const response = await axiosInstance.patch(
+    const response = await axiosInstance.put(
       `/users/me/company/users/${userId}/email`,
       { email: newEmail },
     );
     return response.data;
   },
 
-// ユーザー名変更（本人）
-    updateMyName: async (name) => {
-    const response = await axiosInstance.patch("/users/me/name", { name });
+  // ユーザー名変更（本人）
+  updateMyName: async (name) => {
+    const response = await axiosInstance.put("/users/me/name", { name });
     return response.data;
   },
 
   // 一般ユーザーのパスワードを変更(代理)
- resetGeneralUserPassword: async (userId) => {
-  const response = await axiosInstance.post(`/users/me/company/users/${userId}/reset-password`);
-  return response.data;
+  resetGeneralUserPassword: async (userId) => {
+    const response = await axiosInstance.post(
+      `/users/me/company/users/${userId}/reset-password`,
+    );
+    return response.data;
   },
 
-    getMyBusinessPolicy: async () => {
-  const response = await axiosInstance.get("/users/me/company/business-policy");
-  return response.data;
-},
+  getMyBusinessPolicy: async () => {
+    const response = await axiosInstance.get("/users/me/company/business-policy");
+    return response.data;
+  },
 
-setMyBusinessPolicy: async (isAgreed, markupRate, acknowledgePendingWorkUsesOldRate) => {
-  const response = await axiosInstance.post("/users/me/company/business-policy", {
-    isAgreed,
-    markupRate,
-    acknowledgePendingWorkUsesOldRate,
-  });
-  return response.data;
-},
+  // 事前承認の設定（設定のたびに履歴を1行追加する作りなので POST）
+  setMyBusinessPolicy: async (isAgreed, markupRate, acknowledgePendingWorkUsesOldRate) => {
+    const response = await axiosInstance.post("/users/me/company/business-policy", {
+      isAgreed,
+      markupRate,
+      acknowledgePendingWorkUsesOldRate,
+    });
+    return response.data;
+  },
 };

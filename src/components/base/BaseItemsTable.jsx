@@ -18,15 +18,22 @@ const signed = (n) => (n > 0 ? `+${n}` : `${n}`);
 /**
  * ベース明細の表（PC は棟をまとめた1枚の表、タブレット・スマホは棟ごとのカード）
  * @param preview 現況確認表の集計（渡すと「現況」列と差分の赤表示が出る／管理者のみ）
+ * @param otherItems ほかの使用中のベースの行（そこにある行は「ベース明細未登録」に出さない）
  */
-export default function BaseItemsTable({ items, editable = false, preview = null, onChange }) {
+export default function BaseItemsTable({
+  items,
+  editable = false,
+  preview = null,
+  otherItems = [],
+  onChange,
+}) {
   const { confirm, prompt } = useDialog();
   const { showError } = useMessage();
   const compact = useMediaQuery(TABLET_QUERY); // タブレット・スマホはカード表示
 
   const showSurvey = Boolean(preview);
   const surveyMap = new Map((preview ?? []).map((p) => [keyOf(p), p]));
-  const missing = showSurvey ? missingRows(items, preview) : [];
+  const missing = showSurvey ? missingRows(items, preview, otherItems) : [];
   const colCount = 9 + (showSurvey ? 1 : 0) + (editable ? 1 : 0);
 
   // 表示する行（ベース明細の行＋現況確認表にだけある行）を棟ごとにまとめる
@@ -78,7 +85,11 @@ export default function BaseItemsTable({ items, editable = false, preview = null
       if (r.building === building) last = i;
     });
     const at = last < 0 ? items.length : last + 1;
-    onChange([...items.slice(0, at), newBaseItem(building), ...items.slice(at)]);
+    onChange([
+      ...items.slice(0, at),
+      newBaseItem(building),
+      ...items.slice(at),
+    ]);
   };
 
   const renameBuilding = async (building) => {
@@ -95,7 +106,11 @@ export default function BaseItemsTable({ items, editable = false, preview = null
       showError(`「${next}」は既にあります。`);
       return;
     }
-    onChange(items.map((r) => (r.building === building ? { ...r, building: next } : r)));
+    onChange(
+      items.map((r) =>
+        r.building === building ? { ...r, building: next } : r,
+      ),
+    );
   };
 
   const removeBuilding = async (building) => {
@@ -125,18 +140,24 @@ export default function BaseItemsTable({ items, editable = false, preview = null
   const surveyCell = (row, index) => {
     const diff = diffOf(row, surveyMap);
     if (!diff) return <span className="text-muted">一致</span>;
-    if (diff.type === "NOT_IN_SURVEY") return <span className="text-danger">現況になし</span>;
+    if (diff.type === "NOT_IN_SURVEY")
+      return <span className="text-danger">現況になし</span>;
 
     const s = diff.survey;
     const qtyDiff = Number(s.baseQuantity) - Number(row.baseQuantity || 0);
-    const exDiff = Number(s.excludedQuantity) - Number(row.excludedQuantity || 0);
+    const exDiff =
+      Number(s.excludedQuantity) - Number(row.excludedQuantity || 0);
     return (
       <span className="text-danger">
         現況 {s.baseQuantity}
         {qtyDiff !== 0 && `（${signed(qtyDiff)}）`}
-        {exDiff !== 0 && ` ／ 対象外 ${s.excludedQuantity}（${signed(exDiff)}）`}
+        {exDiff !== 0 &&
+          ` ／ 対象外 ${s.excludedQuantity}（${signed(exDiff)}）`}
         {editable && (
-          <Button className="btn-sm btn-inline" onClick={() => reflect(index, s)}>
+          <Button
+            className="btn-sm btn-inline"
+            onClick={() => reflect(index, s)}
+          >
             反映
           </Button>
         )}
@@ -179,7 +200,11 @@ export default function BaseItemsTable({ items, editable = false, preview = null
       <Button className="btn-sm" onClick={() => renameBuilding(building)}>
         名称変更
       </Button>
-      <Button variant="danger" className="btn-sm" onClick={() => removeBuilding(building)}>
+      <Button
+        variant="danger"
+        className="btn-sm"
+        onClick={() => removeBuilding(building)}
+      >
         削除
       </Button>
     </div>
@@ -189,7 +214,10 @@ export default function BaseItemsTable({ items, editable = false, preview = null
     <>
       <td className="align-left">
         {editable
-          ? input(row, index, "itemName", { maxLength: 100, list: "survey-item-list" })
+          ? input(row, index, "itemName", {
+              maxLength: 100,
+              list: "survey-item-list",
+            })
           : row.itemName}
       </td>
       <td className="align-right">
@@ -220,7 +248,9 @@ export default function BaseItemsTable({ items, editable = false, preview = null
           : row.excludedQuantity || ""}
       </td>
       <td className="align-left">
-        {editable ? input(row, index, "excludedReason", { maxLength: 255 }) : row.excludedReason}
+        {editable
+          ? input(row, index, "excludedReason", { maxLength: 255 })
+          : row.excludedReason}
       </td>
       <td className="align-right">{targetOf(row)}</td>
       <td className="align-right">
@@ -233,11 +263,17 @@ export default function BaseItemsTable({ items, editable = false, preview = null
             })
           : yen(row.unitPrice)}
       </td>
-      <td className="align-right">{yen(targetOf(row) * Number(row.unitPrice || 0))}</td>
+      <td className="align-right">
+        {yen(targetOf(row) * Number(row.unitPrice || 0))}
+      </td>
       {showSurvey && <td className="align-left">{surveyCell(row, index)}</td>}
       {editable && (
         <td className="align-center">
-          <Button variant="danger" className="btn-sm" onClick={() => remove(index)}>
+          <Button
+            variant="danger"
+            className="btn-sm"
+            onClick={() => remove(index)}
+          >
             削除
           </Button>
         </td>
@@ -290,7 +326,11 @@ export default function BaseItemsTable({ items, editable = false, preview = null
           {groups.map(({ building, entries }) =>
             entries.map(({ row, index, missing: isMissing, diff }, i) => (
               <tr
-                key={isMissing ? `missing-${keyOf(row)}` : (row.baseItemId ?? `row-${index}`)}
+                key={
+                  isMissing
+                    ? `missing-${keyOf(row)}`
+                    : (row.baseItemId ?? `row-${index}`)
+                }
                 className={diff ? "row-diff" : undefined}
               >
                 {i === 0 && (

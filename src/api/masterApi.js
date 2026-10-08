@@ -15,7 +15,7 @@ export const masterApi = {
 
   // 編集
   update: async (id, master) => {
-    const response = await axiosInstance.post(`/masters/edit/${id}`, master);
+        const response = await axiosInstance.put(`/masters/${id}`, master);
     return response.data;
   },
 

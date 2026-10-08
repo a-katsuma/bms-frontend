@@ -100,18 +100,18 @@ export default function CompanyUsers() {
     );
     if (!ok) return;
 
+        const newStatus = user.isActive === 1 ? 0 : 1;
     userApi
-      .toggleStatus(user.userId)
+      .setStatus(user.userId, newStatus)
       .then((res) => {
         showSuccess(res.message);
         setUsers((prev) =>
           prev.map((u) =>
-            u.userId === user.userId
-              ? { ...u, isActive: u.isActive === 1 ? 0 : 1 }
-              : u,
+            u.userId === user.userId ? { ...u, isActive: newStatus } : u,
           ),
         );
       })
+
       .catch(showFailure);
   };
 

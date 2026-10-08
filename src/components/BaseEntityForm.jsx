@@ -190,12 +190,12 @@ export default function BaseEntityForm({
       [phoneField]: phone,
     };
 
-    const url = isEdit
-      ? apiEndpoint.replace(/\/?$/, `/edit/${id}`)
-      : apiEndpoint;
+    // 新規登録は POST /clients、編集は PUT /clients/{id}（業者も同じ）
+    const request = isEdit
+      ? axiosInstance.put(apiEndpoint.replace(/\/?$/, `/${id}`), submitData)
+      : axiosInstance.post(apiEndpoint, submitData);
 
-    axiosInstance
-      .post(url, submitData)
+    request
       .then((res) => {
         const targetId = isEdit ? id : res.data?.[idKey];
         const basePath = apiEndpoint.includes("clients")

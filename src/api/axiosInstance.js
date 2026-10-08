@@ -1,9 +1,10 @@
 import axios from "axios";
 import { showGlobalError } from "../atoms/messageAtom";
+import { API_BASE_URL } from "../config";
 
 // 共通のベースURLを持つAxiosインスタンスを作成
 export const axiosInstance = axios.create({
-  baseURL: "http://localhost:8080/api", // 必要に応じて調整
+  baseURL: API_BASE_URL, // 開発は http://localhost:8080/api、本番は /api（config.js）
   headers: {
     "Content-Type": "application/json",
   },

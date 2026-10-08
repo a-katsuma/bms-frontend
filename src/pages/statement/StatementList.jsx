@@ -20,6 +20,9 @@ import {
 import { useDialog } from "../../hooks/useDialog";
 import { useMessage } from "../../hooks/useMessage";
 
+// ベース名と版（例：総合点検（第1版））
+const baseLabel = (name, versionNo) => `${name}（第${versionNo}版）`;
+
 export default function StatementList() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -31,6 +34,7 @@ export default function StatementList() {
 
   const [data, setData] = useState(null);
   const [billingMonth, setBillingMonth] = useState(thisMonth());
+  const [baseId, setBaseId] = useState(""); // コピー元のベース（使用中のベースが2つ以上のとき）
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState(
@@ -55,17 +59,31 @@ export default function StatementList() {
     return <Loading />;
   }
 
-  const { project, statements = [], currentVersionNo = null } = data;
+  const { project, statements = [], bases = [] } = data; // bases：使用中のベース（管理者のみ）
+
+  // コピー元にできるベース（版があるもの）。1つだけなら選ばなくてよい
+  const usable = bases.filter((b) => b.currentVersionNo != null);
+  const multiBase = usable.length > 1;
+  const selectedBase = multiBase
+    ? usable.find((b) => String(b.baseId) === String(baseId))
+    : usable[0];
 
   const handleCreate = async () => {
     if (!billingMonth) {
       showError("請求年月を入力してください。");
       return;
     }
-    const exists = statements.some((s) => s.billingMonth === billingMonth);
+    if (!selectedBase) {
+      showError("コピー元のベースを選択してください。");
+      return;
+    }
+    const label = baseLabel(selectedBase.baseName, selectedBase.currentVersionNo);
+    const exists = statements.some(
+      (s) => s.billingMonth === billingMonth && s.baseId === selectedBase.baseId,
+    );
     const message = exists
-      ? `${formatMonth(billingMonth)}の明細は既にあります。もう1件作成しますか？`
-      : `${formatMonth(billingMonth)}の明細を作成しますか？\n（ベース明細 第${currentVersionNo}版の内容をコピーします）`;
+      ? `${formatMonth(billingMonth)}の「${label}」の明細は既にあります。もう1件作成しますか？`
+      : `${formatMonth(billingMonth)}の明細を作成しますか？\n（ベース明細「${label}」の内容をコピーします）`;
     const ok = await confirm(message, {
       title: "毎次明細の作成",
       okLabel: "作成",
@@ -74,7 +92,7 @@ export default function StatementList() {
 
     setCreating(true);
     statementApi
-      .create(id, billingMonth)
+      .create(id, billingMonth, selectedBase.baseId)
       .then((res) =>
         navigate(`/projects/${id}/statements/${res.statementId}`, {
           state: { message: res.message },
@@ -94,11 +112,12 @@ export default function StatementList() {
   if (isAdmin) {
     summaryItems.push({
       label: "ベース明細",
-      value: currentVersionNo ? (
-        `第${currentVersionNo}版`
-      ) : (
-        <span className="text-danger">未生成</span>
-      ),
+      value:
+        usable.length > 0 ? (
+          usable.map((b) => baseLabel(b.baseName, b.currentVersionNo)).join("、")
+        ) : (
+          <span className="text-muted">なし</span>
+        ),
     });
   }
 
@@ -115,7 +134,7 @@ export default function StatementList() {
     },
     {
       label: "元のベース",
-      render: (s) => (s.versionNo ? `第${s.versionNo}版` : "-"),
+      render: (s) => (s.versionNo ? baseLabel(s.baseName, s.versionNo) : "-"),
     },
     {
       label: "発行日",
@@ -158,29 +177,52 @@ export default function StatementList() {
       {isAdmin && (
         <div className="card">
           <h3>新しい明細を作成</h3>
-          {currentVersionNo ? (
-            <div className="flex-row">
-              <label>請求年月</label>
-              <input
-                type="month"
-                value={billingMonth}
-                onChange={(e) => setBillingMonth(e.target.value)}
-              />
-              <Button
-                variant="primary"
-                onClick={handleCreate}
-                disabled={creating}
-              >
-                作成
-              </Button>
-              <span className="note">
-                ※ベース明細の現在の版（第{currentVersionNo}
-                版）の内容をコピーして下書きを作ります。
-              </span>
-            </div>
+          {usable.length > 0 ? (
+            <>
+              <div className="flex-row">
+                {multiBase && (
+                  <>
+                    <label htmlFor="statement-base">コピー元のベース</label>
+                    <select
+                      id="statement-base"
+                      value={baseId}
+                      onChange={(e) => setBaseId(e.target.value)}
+                    >
+                      <option value="">選択してください</option>
+                      {usable.map((b) => (
+                        <option key={b.baseId} value={b.baseId}>
+                          {baseLabel(b.baseName, b.currentVersionNo)}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+                <label htmlFor="statement-month">請求年月</label>
+                <input
+                  id="statement-month"
+                  type="month"
+                  value={billingMonth}
+                  onChange={(e) => setBillingMonth(e.target.value)}
+                />
+                <Button
+                  variant="primary"
+                  onClick={handleCreate}
+                  disabled={creating || !selectedBase}
+                >
+                  作成
+                </Button>
+              </div>
+              <div className="note mt-10">
+                ※
+                {selectedBase
+                  ? `ベース明細「${baseLabel(selectedBase.baseName, selectedBase.currentVersionNo)}」`
+                  : "選んだベース明細の現在の版"}
+                の内容をコピーして下書きを作ります。
+              </div>
+            </>
           ) : (
-            <p className="text-danger">
-              ベース明細がまだ生成されていません。
+            <p className="text-muted">
+              使用中のベース明細がありません。
               <Button to={`/projects/${id}/base`} className="ml-10">
                 ベース明細へ
               </Button>

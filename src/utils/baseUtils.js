@@ -47,20 +47,21 @@ export const diffOf = (row, surveyMap) => {
   return null;
 };
 
-// 現況確認表にあってベース明細にない行
-export const missingRows = (items, preview = []) => {
-  const keys = new Set(items.map(keyOf));
+// 現況確認表にあってベース明細にない行（otherItems：ほかの使用中のベースの行。そこにある行は除く）
+export const missingRows = (items, preview = [], otherItems = []) => {
+  const keys = new Set([...items, ...otherItems].map(keyOf));
   return preview.filter((p) => !keys.has(keyOf(p)));
 };
 
 // 差分の件数
-export const countDiffs = (items, preview = []) => {
+export const countDiffs = (items, preview = [], otherItems = []) => {
   const surveyMap = new Map(preview.map((p) => [keyOf(p), p]));
   return (
     items.filter((r) => diffOf(r, surveyMap)).length +
-    missingRows(items, preview).length
+    missingRows(items, preview, otherItems).length
   );
 };
+
 
 // 改版をおすすめする変更か（数量・対象外数の変更、行の追加・削除）
 export const isStructuralChange = (original = [], edited = []) => {

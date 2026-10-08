@@ -21,7 +21,7 @@ export default function BillingSummaryCard({
 }) {
   const s = summary ?? {};
   const hasSurvey = (s.surveyItemCount ?? 0) > 0;
-  const hasBase = s.currentVersionNo != null;
+  const hasBase = (s.bases ?? []).length > 0;
   const hasStatement = Boolean(s.latestBillingMonth); // 業者は確定済みだけが対象
 
   const showSurvey = isAdmin || hasSurvey;
@@ -69,8 +69,16 @@ export default function BillingSummaryCard({
             {hasBase ? (
               <>
                 <div className="billing-summary-main">
-                  第{s.currentVersionNo}版
+                  {s.bases.length === 1
+                    ? `第${s.bases[0].versionNo}版`
+                    : `${s.bases.length}件`}
                 </div>
+                {s.bases.length > 1 &&
+                  s.bases.map((b) => (
+                    <div key={b.baseId} className="billing-summary-sub">
+                      {b.baseName} 第{b.versionNo}版
+                    </div>
+                  ))}
                 {isAdmin && (
                   <div className={subClass(s.surveyDiffCount > 0)}>
                     現況との差分{" "}

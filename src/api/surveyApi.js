@@ -10,7 +10,7 @@ export const surveyApi = {
 
   // 保存（新規作成・編集）
   save: async (projectId, items) => {
-    const response = await axiosInstance.post(`/projects/${projectId}/survey/save`, { items });
+    const response = await axiosInstance.put(`/projects/${projectId}/survey`, { items });
     return response.data;
   },
 };

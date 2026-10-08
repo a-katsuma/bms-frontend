@@ -11,6 +11,8 @@ import NoDataMessage from "../../components/NoDataMessage";
 import { loginUserAtom } from "../../atoms/loginUserAtom";
 import { useDialog } from "../../hooks/useDialog";
 import { useMessage } from "../../hooks/useMessage";
+import { fileUrl } from "../../config";
+
 
 export default function ClientDocuments() {
   const { id } = useParams();
@@ -142,11 +144,7 @@ export default function ClientDocuments() {
     {
       label: "分類",
       value: (
-        <select
-          name="docType"
-          value={formData.docType}
-          onChange={handleChange}
-        >
+        <select name="docType" value={formData.docType} onChange={handleChange}>
           <option value="機器一覧表">機器一覧表</option>
           <option value="機器配置図">機器配置図</option>
           <option value="画像">画像</option>
@@ -186,10 +184,7 @@ export default function ClientDocuments() {
 
       <div className="mb-25">
         <span className="page-target-label">対象顧客：</span>
-        <Link
-          to={`/clients/${client.clientId}`}
-          className="page-target-link"
-        >
+        <Link to={`/clients/${client.clientId}`} className="page-target-link">
           {client.clientName}
         </Link>
       </div>
@@ -232,20 +227,17 @@ export default function ClientDocuments() {
                   <div className="preview-box">
                     {isPdf ? (
                       <iframe
-                        src={`http://localhost:8080/${doc.docFilePath}#view=Fit&scrollbar=0&toolbar=0&navpanes=0`}
+                        src={`${fileUrl(doc.docFilePath)}#view=Fit&scrollbar=0&toolbar=0&navpanes=0`}
                         scrolling="no"
                         title={doc.docTitle}
                       />
                     ) : (
-                      <img
-                        src={`http://localhost:8080/${doc.docFilePath}`}
-                        alt="プレビュー"
-                      />
+                      <img src={fileUrl(doc.docFilePath)} alt="プレビュー" />
                     )}
                   </div>
 
                   <a
-                    href={`http://localhost:8080/${doc.docFilePath}`}
+                    href={fileUrl(doc.docFilePath)}
                     target="_blank"
                     rel="noopener noreferrer"
                   >

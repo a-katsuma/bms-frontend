@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useSearchParams } from "react-router";
 import { useAtomValue } from "jotai";
 import { loginUserAtom } from "../../atoms/loginUserAtom";
 import AlertMessage from "../../components/AlertMessage";
@@ -10,6 +10,8 @@ import DetailList from "../../components/DetailList";
 import BaseItemsTable from "../../components/base/BaseItemsTable";
 import VersionDiff from "../../components/base/VersionDiff";
 import BaseOtherItemsTable from "../../components/base/BaseOtherItemsTable";
+import BaseSwitcher from "../../components/base/BaseSwitcher";
+import NewBaseSetup from "../../components/base/NewBaseSetup";
 import { baseApi } from "../../api/baseApi";
 import { masterApi } from "../../api/masterApi";
 import {
@@ -26,6 +28,8 @@ import {
 import { useUnsavedChangesGuard } from "../../hooks/useUnsavedChangesGuard";
 import { useDialog } from "../../hooks/useDialog";
 import { useMessage } from "../../hooks/useMessage";
+import { fileUrl } from "../../config";
+
 
 const emptyOther = () => ({
   feeName: "",
@@ -68,12 +72,16 @@ const formOf = (version) => ({
   quoteId: version.quoteId ?? "",
 });
 
+// 最新の「発注」の見積り（新しいベースの初期値）
+const orderedQuoteIdOf = (quotes) =>
+  (quotes ?? []).find((q) => q.quoteStatus === "発注")?.quoteId ?? "";
+
 // 版に紐づく見積りのリンク
 function QuoteLink({ quoteId, filepath, date, status }) {
   if (!quoteId) return "指定なし";
   return (
     <a
-      href={`http://localhost:8080/${filepath}`}
+      href={fileUrl(filepath)}
       target="_blank"
       rel="noreferrer"
     >
@@ -91,6 +99,8 @@ const totalRows = (totals, taxRate) => [
 export default function BillingBase() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const baseIdParam = searchParams.get("baseId"); // 未指定なら使用中の先頭のベース
   const loginUser = useAtomValue(loginUserAtom);
   const isAdmin = loginUser?.roleFlag === 1;
   const { confirm, prompt } = useDialog();
@@ -99,6 +109,9 @@ export default function BillingBase() {
   const [data, setData] = useState(null);
   const [masters, setMasters] = useState({});
   const [editing, setEditing] = useState(false);
+  const [creating, setCreating] = useState(false); // 新しいベースを作成中
+  const [setupOpen, setSetupOpen] = useState(false); // 作成の準備（ベース名・初期値）を表示中
+  const [newBaseName, setNewBaseName] = useState("");
   const [items, setItems] = useState([]);
   const [others, setOthers] = useState([]);
   const [taxRate, setTaxRate] = useState(10);
@@ -120,30 +133,28 @@ export default function BillingBase() {
   const fetchBase = () => {
     setLoading(true);
     baseApi
-      .get(id, isAdmin)
+      .get(id, isAdmin, baseIdParam)
       .then((res) => {
         setData(res);
         setSelectedVersionId("");
+        setEditing(false);
+        setNewBaseName("");
         if (res.base?.currentVersion) {
           loadForm(formOf(res.base.currentVersion));
-          setEditing(false);
+          setCreating(false);
+          setSetupOpen(false);
         } else {
-          // 未生成：現況確認表の集計から生成フォームを作る
-          const ordered = (res.quotes ?? []).find(
-            (q) => q.quoteStatus === "発注",
-          );
-          loadForm({
-            items: (res.preview ?? []).map((p) => ({ ...p, unitPrice: "" })),
-            others: [],
-            taxRate: 10,
-            quoteId: ordered?.quoteId ?? "",
-          });
-          setEditing(isAdmin);
+          // ベースがない：管理者は新しいベースの準備から
+          setCreating(isAdmin);
+          setSetupOpen(isAdmin);
         }
       })
       .catch((error) => {
         console.error("ベース明細取得エラー:", error);
-        if (error.response?.status === 403 || error.response?.status === 404) {
+        const status = error.response?.status;
+        if (status === 404 && baseIdParam) {
+          setSearchParams({}, { replace: true }); // 指定のベースがない：先頭のベースを表示
+        } else if (status === 403 || status === 404) {
           navigate(`/projects/${id}`);
         }
       })
@@ -152,13 +163,16 @@ export default function BillingBase() {
 
   useEffect(() => {
     fetchBase();
+  }, [id, isAdmin, baseIdParam]);
+
+  useEffect(() => {
     if (isAdmin) {
       masterApi
         .getAll()
         .then(setMasters)
         .catch((error) => console.error("常用項目取得エラー:", error));
     }
-  }, [id, isAdmin]);
+  }, [isAdmin]);
 
   // 未保存の変更（読み込んだ時点・キャンセルした時点との比較）
   const dirty =
@@ -172,8 +186,25 @@ export default function BillingBase() {
     return <Loading />;
   }
 
-  const { project, base, preview = [], quotes = [], blockReason } = data;
-  const current = base?.currentVersion ?? null;
+  const {
+    project,
+    bases = [],
+    base,
+    preview = [],
+    otherBaseItems = [],
+    quotes = [],
+    blockReason,
+  } = data;
+  const current = creating ? null : (base?.currentVersion ?? null);
+  const stopped = !creating && Boolean(base?.stopped);
+
+  // 使用中のベースの現在の版の行（表示中のベースを含む）
+  const activeItems = [
+    ...otherBaseItems,
+    ...(base && !base.stopped && base.currentVersion ? base.currentVersion.items : []),
+  ];
+  // 「どのベースにもない行」の判定に使う、ほかのベースの行
+  const otherItems = creating ? activeItems : otherBaseItems;
 
   // 業者側で未生成
   if (!isAdmin && !current) {
@@ -192,34 +223,127 @@ export default function BillingBase() {
     );
   }
 
-  // --- 保存 ---
-  const buildPayload = (mode) => ({
-    mode,
-    ...toPayload({ items, others, taxRate, quoteId }),
-  });
+  // --- 画面の切り替え ---
+  // 編集中の内容を捨ててよいか（変更がなければそのまま進む）
+  const confirmDiscard = async () => {
+    if (!dirty) return true;
+    return confirm("編集中の内容を破棄しますか？", {
+      title: "編集の取り消し",
+      okLabel: "破棄する",
+      danger: true,
+    });
+  };
 
+  // 作成をやめて、表示中のベースに戻る
+  const backToBase = () => {
+    setCreating(false);
+    setSetupOpen(false);
+    setEditing(false);
+    setNewBaseName("");
+    if (base?.currentVersion) {
+      loadForm(formOf(base.currentVersion));
+    }
+  };
+
+  const selectBase = async (baseId) => {
+    if (!(await confirmDiscard())) return;
+    clearMessage();
+    if (baseId === base?.baseId) {
+      backToBase();
+      return;
+    }
+    setSearchParams({ baseId: String(baseId) });
+  };
+
+  const startNewBase = async () => {
+    if (!(await confirmDiscard())) return;
+    clearMessage();
+    setCreating(true);
+    setSetupOpen(true);
+    setEditing(false);
+    setNewBaseName("");
+  };
+
+  const cancelSetup = () => {
+    if (!base) {
+      navigate(`/projects/${id}`);
+      return;
+    }
+    backToBase();
+  };
+
+  // 準備の画面から明細の入力へ
+  const handleSetupStart = ({ baseName, source, rows, copyBaseId }) => {
+    clearMessage();
+    const orderedQuoteId = orderedQuoteIdOf(quotes);
+    const begin = (form) => {
+      setNewBaseName(baseName);
+      loadForm(form);
+      setSetupOpen(false);
+      setEditing(true);
+    };
+
+    if (source === "SURVEY") {
+      // 単価は、ほかのベースに同じ行があればその単価
+      const priceOf = new Map(activeItems.map((i) => [keyOf(i), i.unitPrice]));
+      begin({
+        items: rows.map((r) => ({ ...r, unitPrice: priceOf.get(keyOf(r)) ?? "" })),
+        others: [],
+        taxRate: 10,
+        quoteId: orderedQuoteId,
+      });
+      return;
+    }
+
+    baseApi
+      .get(id, true, copyBaseId)
+      .then((res) => {
+        const version = res.base?.currentVersion;
+        if (!version) {
+          showError("コピー元のベースが見つかりません。");
+          return;
+        }
+        begin({ ...formOf(version), quoteId: orderedQuoteId });
+      })
+      .catch((error) => {
+        console.error("コピー元のベース取得エラー:", error);
+        showError("コピー元のベースの取得に失敗しました。");
+      });
+  };
+
+   // --- 保存（作成：POST／訂正：PUT／改版：POST .../versions） ---
   const handleSave = async (mode) => {
-    const confirmMessage = !current
-      ? "ベース明細を生成しますか？"
+    const confirmMessage = creating
+      ? `ベース「${newBaseName}」を作成しますか？`
       : mode === "CORRECT"
         ? `第${current.versionNo}版を上書きして保存しますか？（入力ミスの訂正）`
         : `第${current.versionNo + 1}版として新しく保存しますか？`;
     const ok = await confirm(confirmMessage, {
-      title: !current
-        ? "ベース明細の生成"
+      title: creating
+        ? "ベース明細の作成"
         : mode === "CORRECT"
           ? "訂正として保存"
           : "新しい版として保存",
-      okLabel: !current ? "生成" : "保存",
+      okLabel: creating ? "作成" : "保存",
     });
     if (!ok) return;
 
-    baseApi
-      .save(id, buildPayload(mode))
+    const payload = toPayload({ items, others, taxRate, quoteId });
+    const request = creating
+      ? baseApi.create(id, { baseName: newBaseName, ...payload })
+      : mode === "CORRECT"
+        ? baseApi.correct(id, base.baseId, payload)
+        : baseApi.revise(id, base.baseId, payload);
+
+    request
       .then((res) => {
         clearMessage();
         setSuccessMessage(res.message);
-        fetchBase();
+        if (String(res.baseId) === baseIdParam) {
+          fetchBase();
+        } else {
+          setSearchParams({ baseId: String(res.baseId) }); // 作成したベース（または指定なしで開いていたベース）を表示
+        }
       })
       .catch((error) => {
         setSuccessMessage("");
@@ -227,20 +351,79 @@ export default function BillingBase() {
       });
   };
 
+
   const handleCancel = async () => {
-    if (dirty) {
-      const ok = await confirm("編集中の内容を破棄しますか？", {
-        title: "編集の取り消し",
-        okLabel: "破棄する",
-        danger: true,
-      });
-      if (!ok) return;
+    if (!(await confirmDiscard())) return;
+    clearMessage();
+    if (creating) {
+      // 作成中：初期値の選び直しに戻る
+      setEditing(false);
+      setSetupOpen(true);
+      return;
     }
     loadForm(formOf(current));
     setEditing(false);
-    clearMessage();
   };
 
+  // --- ベースの管理（名前・使用停止・削除） ---
+  const runBaseAction = (request, onDone = fetchBase) =>
+    request
+      .then((res) => {
+        clearMessage();
+        setSuccessMessage(res.message);
+        onDone();
+      })
+      .catch((error) => {
+        setSuccessMessage("");
+        showError(error.response?.data?.errorMessage || "処理に失敗しました。");
+      });
+
+  const renameBase = async () => {
+    const name = (
+      await prompt("新しいベース名を入力してください", base.baseName, {
+        title: "ベース名の変更",
+        okLabel: "変更",
+        maxLength: 50,
+      })
+    )?.trim();
+    if (!name || name === base.baseName) return;
+    runBaseAction(baseApi.rename(id, base.baseId, name));
+  };
+
+  const stopBase = async () => {
+    const ok = await confirm(
+      `ベース「${base.baseName}」を使用停止にしますか？\n毎次明細の作成・現況確認表の発注状況・差分の対象から外れます。\n（あとで再開できます）`,
+      { title: "ベースの使用停止", okLabel: "使用停止", danger: true },
+    );
+    if (!ok) return;
+    runBaseAction(baseApi.stop(id, base.baseId));
+  };
+
+  const resumeBase = async () => {
+    const ok = await confirm(`ベース「${base.baseName}」の使用を再開しますか？`, {
+      title: "ベースの使用再開",
+      okLabel: "再開",
+    });
+    if (!ok) return;
+    runBaseAction(baseApi.resume(id, base.baseId));
+  };
+
+  const deleteBase = async () => {
+    const ok = await confirm(
+      `ベース「${base.baseName}」を削除しますか？\nすべての版と明細が削除され、元に戻せません。`,
+      { title: "ベースの削除", okLabel: "削除", danger: true },
+    );
+    if (!ok) return;
+    runBaseAction(baseApi.remove(id, base.baseId), () => {
+      if (baseIdParam) {
+        setSearchParams({}); // 先頭のベースを表示
+      } else {
+        fetchBase();
+      }
+    });
+  };
+
+  // --- 明細の編集 ---
   // 棟を追加（棟名を入力して、空の行を1つ作る）
   const addBuilding = async () => {
     const name = (
@@ -260,7 +443,7 @@ export default function BillingBase() {
     setItems((prev) => [...prev, newBaseItem(name)]);
   };
 
-  // 差分をすべて現況に合わせる（数量の反映＋未登録行の追加）
+  // 差分をすべて現況に合わせる（数量の反映＋どのベースにもない行の追加）
   const applyAllSurvey = () => {
     const surveyMap = new Map(preview.map((p) => [keyOf(p), p]));
     const updated = items.map((r) => {
@@ -274,18 +457,44 @@ export default function BillingBase() {
           }
         : r;
     });
-    const added = missingRows(items, preview).map((s) => ({
+    const added = missingRows(items, preview, otherItems).map((s) => ({
       ...s,
       unitPrice: "",
     }));
     setItems([...updated, ...added]);
   };
 
+  // --- 新しいベースの準備 ---
+  if (setupOpen) {
+    return (
+      <div className="content-wrapper">
+        <PageHeader title="ベース明細の作成" />
+        <BaseSwitcher
+          bases={bases}
+          selectedId={base?.baseId}
+          adding
+          onSelect={selectBase}
+          onAdd={startNewBase}
+        />
+        <NewBaseSetup
+          bases={bases}
+          preview={preview}
+          activeItems={activeItems}
+          blockReason={blockReason}
+          initialName={newBaseName}
+          onStart={handleSetupStart}
+          onCancel={cancelSetup}
+        />
+      </div>
+    );
+  }
+
   // --- 表示用の値 ---
   const shownItems = editing ? items : current.items;
   const shownOthers = editing ? others : current.otherItems;
   const shownTaxRate = editing ? taxRate : current.taxRate;
   const totals = calcTotals(shownItems, shownOthers, shownTaxRate);
+  const showSurvey = isAdmin && !stopped; // 使用停止中のベースは現況と比べない
 
   // 合計欄（編集中は、税率と見積りの入力を合計の上に1行ずつ並べる）
   const totalItems = [
@@ -327,8 +536,8 @@ export default function BillingBase() {
   ];
 
   const savedDiffCount =
-    isAdmin && current ? countDiffs(current.items, preview) : 0;
-  const editDiffCount = editing ? countDiffs(items, preview) : 0;
+    showSurvey && current ? countDiffs(current.items, preview, otherItems) : 0;
+  const editDiffCount = editing ? countDiffs(items, preview, otherItems) : 0;
   const recommendRevise =
     editing &&
     current &&
@@ -336,9 +545,9 @@ export default function BillingBase() {
       Number(taxRate) !== Number(current.taxRate));
 
   // 過去の版（現在の版を除く）
-  const pastVersions = (base?.versions ?? []).filter(
-    (v) => v.versionId !== current?.versionId,
-  );
+  const pastVersions = creating
+    ? []
+    : (base?.versions ?? []).filter((v) => v.versionId !== current?.versionId);
   const selectedVersion = pastVersions.find(
     (v) => String(v.versionId) === String(selectedVersionId),
   );
@@ -352,6 +561,17 @@ export default function BillingBase() {
   const summaryItems = [
     { label: "案件名", value: project.projectName },
     { label: "顧客名", value: project.clientName },
+    {
+      label: "ベース名",
+      value: creating ? (
+        `${newBaseName}（新規作成）`
+      ) : (
+        <>
+          {base.baseName}
+          {stopped && <span className="text-muted">（使用停止中）</span>}
+        </>
+      ),
+    },
     {
       label: "現在の版",
       value: current
@@ -372,7 +592,7 @@ export default function BillingBase() {
       ),
     },
   ];
-  if (isAdmin && current) {
+  if (showSurvey && current) {
     summaryItems.push({
       label: "現況確認表との差分",
       value:
@@ -386,7 +606,7 @@ export default function BillingBase() {
 
   return (
     <div className={`content-wrapper ${isAdmin ? "" : "theme-contractee"}`}>
-      <PageHeader title={current ? "ベース明細" : "ベース明細生成"} />
+      <PageHeader title={current ? "ベース明細" : "ベース明細の作成"} />
 
       <AlertMessage
         message={successMessage}
@@ -395,9 +615,53 @@ export default function BillingBase() {
         onClose={() => setSuccessMessage("")}
       />
 
+      <BaseSwitcher
+        bases={bases}
+        selectedId={base?.baseId}
+        adding={creating}
+        onSelect={selectBase}
+        onAdd={isAdmin ? startNewBase : null}
+      />
+
       <div className="card">
         <h3>概要</h3>
         <DetailList items={summaryItems} />
+
+        {/* ベースの管理（閲覧中のみ） */}
+        {isAdmin && base && !creating && !editing && (
+          <>
+            <div className="base-toolbar mt-10">
+              <Button className="btn-sm" onClick={renameBase}>
+                ベース名を変更
+              </Button>
+              {stopped ? (
+                <>
+                  <Button className="btn-sm" onClick={resumeBase}>
+                    使用を再開
+                  </Button>
+                  <Button
+                    variant="danger"
+                    className="btn-sm"
+                    onClick={deleteBase}
+                    disabled={base.statementCount > 0}
+                  >
+                    削除
+                  </Button>
+                </>
+              ) : (
+                <Button variant="danger" className="btn-sm" onClick={stopBase}>
+                  使用停止
+                </Button>
+              )}
+            </div>
+            {stopped && base.statementCount > 0 && (
+              <div className="note-sm">
+                ※毎次明細（{base.statementCount}件）があるため削除できません。
+              </div>
+            )}
+          </>
+        )}
+
         <div className="survey-back">
           <Button to={`/projects/${id}`} variant="cancel">
             案件詳細へ戻る
@@ -408,16 +672,21 @@ export default function BillingBase() {
       {/* --- 明細〜合計（1枚のカード） --- */}
       <div className="card base-card">
         <h3>
-          最新ベース明細
+          {creating ? `新しいベース明細（${newBaseName}）` : "最新ベース明細"}
           {current && !editing ? `（第${current.versionNo}版）` : ""}
         </h3>
 
         {/* 見出しの下の操作（閲覧中：編集する／編集中：棟を追加） */}
-        {isAdmin && current && !editing && (
+        {isAdmin && current && !editing && !stopped && (
           <div className="base-toolbar">
             <Button variant="primary" onClick={() => setEditing(true)}>
               編集する
             </Button>
+          </div>
+        )}
+        {isAdmin && stopped && (
+          <div className="text-muted mb-10">
+            ※使用停止中のベースです。編集するには使用を再開してください。
           </div>
         )}
         {editing && (
@@ -442,6 +711,7 @@ export default function BillingBase() {
             </div>
             <div className="note-sm">
               ※「現況になし」の行は自動では削除しません。不要な場合は行を削除してください。
+              ほかのベースにある行は「ベース明細未登録」に出しません。
             </div>
           </div>
         )}
@@ -449,7 +719,8 @@ export default function BillingBase() {
         <BaseItemsTable
           items={shownItems}
           editable={editing}
-          preview={isAdmin ? preview : null}
+          preview={showSurvey ? preview : null}
+          otherItems={otherItems}
           onChange={setItems}
         />
 
@@ -487,13 +758,18 @@ export default function BillingBase() {
         {editing && (
           <div className="action-buttons-form">
             {!current && (
-              <Button
-                variant="primary"
-                onClick={() => handleSave("REVISE")}
-                disabled={Boolean(blockReason) || items.length === 0}
-              >
-                ベース明細を生成
-              </Button>
+              <>
+                <Button
+                  variant="primary"
+                  onClick={() => handleSave("REVISE")}
+                  disabled={Boolean(blockReason) || items.length === 0}
+                >
+                  ベース明細を作成
+                </Button>
+                <Button variant="cancel" onClick={handleCancel}>
+                  戻る（初期値の選び直し）
+                </Button>
+              </>
             )}
             {current && (
               <>

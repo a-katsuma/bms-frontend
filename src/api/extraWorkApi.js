@@ -50,9 +50,9 @@ export const extraWorkApi = {
 
   // 保存（受注済みは保留に戻る）
   save: async (projectId, extraWorkId, payload) => {
-    const response = await axiosInstance.post(
-      `${baseOf(projectId)}/${extraWorkId}/save`,
-      payload,
+    const response = await axiosInstance.put(
+      `${baseOf(projectId)}/${extraWorkId}`,
+       payload,
     );
     return response.data;
   },

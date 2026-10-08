@@ -574,13 +574,14 @@ details summary {
   font-weight: bold;
 }
 
+/* 記号は文字コードに左右されないようエスケープで書く（\25BC＝▼、\25B2＝▲） */
 details summary::before {
-  content: "▼ ";
+  content: "\25BC  ";
   font-size: 0.7rem;
 }
 
 details[open] summary::before {
-  content: "▲ ";
+  content: "\25B2  ";
 }
 
 .remarks-container {
@@ -603,12 +604,12 @@ details[open] summary::before {
 }
 
 .remarks-container details summary::before {
-  content: "▼ ";
+  content: "\25BC  ";
   font-size: 0.7rem;
 }
 
 .remarks-container details[open] summary::before {
-  content: "▲ ";
+  content: "\25B2  ";
 }
 
 .remarks-container details p {
@@ -1874,6 +1875,19 @@ textarea.textarea-sm {
     padding: 16px 12px; /* カードの余白を減らして表を広くする */
   }
 }
+
+/* ベースの切り替え（BaseSwitcher） */
+.base-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.base-switcher .btn {
+  width: auto; /* スマホでも全幅にしない */
+}
+
 
 /* 帯の中の操作ボタン（文章の下に改行して置く。スマホでも全幅にしない） */
 .alert-action {

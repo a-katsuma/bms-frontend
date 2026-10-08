@@ -29,7 +29,7 @@ export const companyApi = {
 
   // 業者更新
   update: async (id, data) => {
-    const response = await axiosInstance.post(`/companys/edit/${id}`, data);
+        const response = await axiosInstance.put(`/companys/${id}`, data);
     return response.data;
   },
 

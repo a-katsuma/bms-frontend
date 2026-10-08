@@ -228,7 +228,9 @@ export default function StatementDetail() {
     },
     {
       label: "元のベース",
-      value: statement.versionNo ? `第${statement.versionNo}版` : "-",
+      value: statement.versionNo
+        ? `${statement.baseName}（第${statement.versionNo}版）`
+        : "-",
     },
   ];
   if (!isDraft) {
@@ -376,7 +378,7 @@ export default function StatementDetail() {
         )}
       </div>
 
-            {/* 受注済みの緊急・追加作業を取り込むダイアログ（開くたびに候補を取り直す） */}
+      {/* 受注済みの緊急・追加作業を取り込むダイアログ（開くたびに候補を取り直す） */}
       {importing && (
         <ImportExtraWorksDialog
           clientId={project.clientId}
@@ -386,7 +388,6 @@ export default function StatementDetail() {
           onCancel={() => setImporting(false)}
         />
       )}
-
     </div>
   );
 }
