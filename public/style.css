@@ -776,9 +776,15 @@ details[open] summary::before {
     padding: 12px 5px;
   }
 
-  .data-table td:last-child::before {
-    display: none !important;
+    /* 項目名を出さないセル
+     ・最後の列のうち、ボタンが入っているセル（操作の列）
+     ・「データがありません」の行（colSpan で1つにまとめたセル）
+     ※ 判定履歴のように最後の列が「ファイル」の表もあるため、:last-child だけでは消さない */
+  .data-table td:last-child:has(.btn)::before,
+  .data-table td[colspan]::before {
+    display: none;
   }
+
 
   /* 詳細リストのスマホ対応 */
   .card .detail-list {
@@ -2200,4 +2206,185 @@ textarea.textarea-sm {
 .demo-box-note {
   margin-top: 16px;
   line-height: 1.6;
+}
+
+
+/* =====================================================
+   UI調整（太字・文字サイズ・合計欄・日付の入力欄）
+   ※ 既存の指定より後ろに置くため、ファイルの末尾に書く
+   ===================================================== */
+
+/* --- 太字を戻す ---
+   reset.css が strong・b・h4 の太さを消しているため、<strong> が太字になっていなかった */
+strong,
+b {
+  font-weight: bold;
+}
+
+h4 {
+  font-weight: bold;
+}
+
+/* --- 文字サイズ（PC の値。スマホは下の @media で値だけ変える） --- */
+:root {
+  --fs-page-title: 1.6rem;  /* ページの見出し（h1） */
+  --fs-logo: 1.4rem;        /* サイドバーのロゴ */
+  --fs-card-title: 1.1rem;  /* カードの見出し（h3） */
+  --fs-greeting: 1rem;      /* 「お疲れ様です、○○さん」 */
+  --fs-filter: 1rem;        /* あいうえお検索 */
+  --fs-total: 1.15rem;      /* 合計欄の合計金額 */
+}
+
+header h1 {
+  font-size: var(--fs-page-title);
+}
+
+.sidebar-logo {
+  font-size: var(--fs-logo);
+}
+
+.card h3 {
+  font-size: var(--fs-card-title);
+}
+
+.login-status {
+  font-size: var(--fs-greeting);
+}
+
+.kana-filter {
+  font-size: var(--fs-filter);
+}
+
+/* あいうえお検索：選んでいる行を太字にする（active は付いていたが見た目の指定がなかった） */
+.kana-filter a.active {
+  font-weight: bold;
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* --- 合計欄：合計の行（値を <strong> で囲んだ行）を目立たせる
+   ベース明細・毎次明細・緊急・追加作業の合計欄すべてに効く --- */
+.detail-list.is-totals .detail-item:has(> dd > strong) {
+  border-top: 2px solid var(--text-muted);
+}
+
+.detail-list.is-totals .detail-item:has(> dd > strong) dt {
+  color: var(--text);
+  font-weight: bold;
+}
+
+.detail-list.is-totals dd > strong {
+  font-size: var(--fs-total);
+}
+
+/* --- スマホ（768px以下）：文字を一段小さくする --- */
+@media screen and (max-width: 768px) {
+  :root {
+    --fs-page-title: 1.25rem;
+    --fs-logo: 1.1rem;
+    --fs-card-title: 1rem;
+    --fs-greeting: 0.8rem;
+    --fs-filter: 0.85rem;
+    --fs-total: 1.05rem;
+  }
+
+  /* 「お疲れ様です」は見出しより目立たせない */
+  .login-status {
+    color: var(--text-muted);
+  }
+
+  /* 一覧（カード表示）の値 */
+  .data-table td {
+    font-size: 0.9rem;
+  }
+
+  /* 詳細の値（さくらビルなど）：大きさと太さを控えめにする */
+  .card .detail-item dd {
+    font-size: 0.9rem;
+    font-weight: normal;
+  }
+
+  /* あいうえお検索：区切りの「｜」をやめて、間隔をあけて並べる */
+  .kana-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+  }
+
+  .kana-filter a::after {
+    content: none;
+  }
+}
+
+/* --- iPhone・iPad：日付の入力欄が枠からはみ出さないようにする
+   （Safari の日付欄は独自の最小幅を持つため、width: 100% でもはみ出す）
+   ※ -webkit-touch-callout は iPhone・iPad だけが対応しているので、PC には効かない --- */
+@supports (-webkit-touch-callout: none) {
+  input[type="date"] {
+    display: block;
+    min-width: 0;
+    min-height: calc(1.2em + 26px); /* 空のときに高さがつぶれないよう、ほかの入力欄にそろえる */
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* 日付を左寄せにする（appearance: none にすると中央寄せになるため） */
+  input[type="date"]::-webkit-date-and-time-value {
+    text-align: left;
+  }
+}
+
+/* =====================================================
+   サイドバー：マイページ・ログアウトを下にまとめ、メニューと同じ見た目にする
+   ※ 既存の .sidebar-footer・.logout-btn より後ろに置く（.sidebar を付けて優先させる）
+   ===================================================== */
+.sidebar .sidebar-footer {
+  padding: 10px 0 0;
+  text-align: left;
+  border-top: 1px solid rgba(255, 255, 255, 0.1); /* メニューとの区切り線 */
+}
+
+/* ログアウト：メニューのリンク（.sidebar ul li a）と同じ見た目 */
+.sidebar .logout-btn {
+  display: block;
+  width: 100%;
+  padding: 15px 30px;
+  font: inherit; /* button は文字の設定を親から受け継がないため */
+  color: #bdc3c7;
+  text-align: left;
+  background: none;
+  border: none;
+  border-left: 4px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+/* hover だけ赤みにして、ほかのメニューと区別する */
+.sidebar .logout-btn:hover {
+  background-color: rgba(231, 76, 60, 0.15);
+  color: var(--white);
+  border-left-color: rgba(231, 76, 60, 0.6);
+}
+
+/* スマホ（768px以下）：横並びのメニューに合わせる */
+@media screen and (max-width: 768px) {
+  .sidebar .sidebar-footer {
+    margin-top: 0;
+    padding: 0 0 0 8px;
+    border-top: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.15); /* 縦線で区切り、押し間違いを防ぐ */
+  }
+
+  .sidebar .logout-btn {
+    width: auto;
+    padding: 10px 15px;
+    font-size: 0.85rem;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+  }
+
+  .sidebar .logout-btn:hover {
+    border-bottom-color: rgba(231, 76, 60, 0.6);
+  }
 }
