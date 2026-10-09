@@ -66,21 +66,25 @@ export default function Sidebar({ roleFlag }) {
               </li>
               {/* ★ 代表ユーザーのみ「事前承認設定」を表示 */}
               <li>
-                <NavLink to="/company/business-policy">事前承認設定</NavLink>{" "}
-                {/* ★修正 */}
+                <NavLink to="/company/business-policy">事前承認設定</NavLink>
               </li>
             </>
           )}
-          <li>
-            <NavLink to="/account">マイページ</NavLink>
-          </li>
         </ul>
 
-        {/* ログアウトボタンエリア */}
+        {/* 自分のアカウントに関する項目（マイページ・ログアウト）は下にまとめる */}
         <div className="sidebar-footer">
-          <button onClick={handleLogout} className="logout-btn">
-            ログアウト
-          </button>
+          <ul>
+            <li>
+              <NavLink to="/account">マイページ</NavLink>
+            </li>
+            <li>
+              {/* ログアウトは画面の移動ではなく操作なので button のまま。見た目だけメニューにそろえる */}
+              <button type="button" onClick={handleLogout} className="logout-btn">
+                ログアウト
+              </button>
+            </li>
+          </ul>
         </div>
       </div>
     </nav>

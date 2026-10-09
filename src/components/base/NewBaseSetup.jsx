@@ -66,7 +66,11 @@ export default function NewBaseSetup({
 
   const handleStart = () => {
     if (source === SOURCE_SURVEY) {
-      onStart({ baseName: name, source, rows: preview.filter((p) => checked.has(keyOf(p))) });
+      onStart({
+        baseName: name,
+        source,
+        rows: preview.filter((p) => checked.has(keyOf(p))),
+      });
     } else {
       onStart({ baseName: name, source, copyBaseId: Number(copyBaseId) });
     }
@@ -76,10 +80,13 @@ export default function NewBaseSetup({
     <div className="card">
       <h3>新しいベース</h3>
 
-      {blockReason && <div className="alert alert-danger mb-15">※{blockReason}</div>}
+      {blockReason && (
+        <div className="alert alert-danger mb-15">※{blockReason}</div>
+      )}
 
       <h4 className="section-title">ベース名（必須）</h4>
       <input
+        type="text"
         value={baseName}
         maxLength={NAME_MAX}
         placeholder="例：通常点検、総合点検"
@@ -114,7 +121,10 @@ export default function NewBaseSetup({
       {source === SOURCE_SURVEY && (
         <>
           <div className="flex-row mb-10">
-            <Button className="btn-sm" onClick={() => setChecked(new Set(preview.map(keyOf)))}>
+            <Button
+              className="btn-sm"
+              onClick={() => setChecked(new Set(preview.map(keyOf)))}
+            >
               すべて選ぶ
             </Button>
             <Button className="btn-sm" onClick={() => setChecked(new Set())}>
@@ -171,7 +181,13 @@ export default function NewBaseSetup({
                     <td className="align-right">{p.baseQuantity}</td>
                     <td>{p.unit}</td>
                     <td className="align-right">{p.excludedQuantity || ""}</td>
-                    <td>{owners ? owners.join("・") : <span className="text-muted">なし</span>}</td>
+                    <td>
+                      {owners ? (
+                        owners.join("・")
+                      ) : (
+                        <span className="text-muted">なし</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -185,7 +201,10 @@ export default function NewBaseSetup({
 
       {source === SOURCE_COPY && (
         <>
-          <select value={copyBaseId} onChange={(e) => setCopyBaseId(e.target.value)}>
+          <select
+            value={copyBaseId}
+            onChange={(e) => setCopyBaseId(e.target.value)}
+          >
             {copyable.map((b) => (
               <option key={b.baseId} value={b.baseId}>
                 {`${b.baseName}（第${b.currentVersionNo}版）${b.stopped ? "（使用停止）" : ""}`}

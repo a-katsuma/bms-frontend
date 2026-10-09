@@ -19,7 +19,6 @@ import { useDialog } from "../../hooks/useDialog";
 import { useMessage } from "../../hooks/useMessage";
 import { fileUrl } from "../../config";
 
-
 const QUOTE_UNJUDGED = "未判定";
 
 export default function ProjectDetail() {
@@ -166,7 +165,9 @@ export default function ProjectDetail() {
 
   // 削除（論理削除）。isLatest は最新の見積りか
   const handleQuoteDelete = async (quote, isLatest) => {
-    const target = isLatest ? "最新の見積り" : `${quote.quoteDate} 登録の見積り`;
+    const target = isLatest
+      ? "最新の見積り"
+      : `${quote.quoteDate} 登録の見積り`;
     const ok = await confirm(
       `${target}を削除しますか？\n削除済みの見積りに移り、あとで復元できます（判定履歴は残ります）。`,
       { title: "見積りの削除", okLabel: "削除", danger: true },
@@ -179,10 +180,13 @@ export default function ProjectDetail() {
   };
 
   const handleQuoteRestore = async (quote) => {
-    const ok = await confirm(`${quote.quoteDate} 登録の見積りを復元しますか？`, {
-      title: "見積りの復元",
-      okLabel: "復元",
-    });
+    const ok = await confirm(
+      `${quote.quoteDate} 登録の見積りを復元しますか？`,
+      {
+        title: "見積りの復元",
+        okLabel: "復元",
+      },
+    );
     if (!ok) return;
     runQuoteAction(
       projectApi.restoreQuote(id, quote.quoteId),
@@ -271,11 +275,7 @@ export default function ProjectDetail() {
   ];
 
   const pdfLink = (filepath, label) => (
-    <a
-       href={fileUrl(filepath)}
-      target="_blank"
-      rel="noreferrer"
-    >
+    <a href={fileUrl(filepath)} target="_blank" rel="noreferrer">
       {label}
     </a>
   );
@@ -411,18 +411,17 @@ export default function ProjectDetail() {
         </div>
       )}
 
-      <Button type="submit" variant="primary" className="btn-submit-quote">
-        登録する
-      </Button>
-      {latestQuote && (
-        <Button
-          variant="cancel"
-          className="ml-10"
-          onClick={() => setRequoteOpen(false)}
-        >
-          キャンセル
+      {/* ボタンの並び（PC は横並び、スマホは縦並びで同じ幅。間隔は .action-buttons の gap） */}
+      <div className="action-buttons">
+        <Button type="submit" variant="primary">
+          登録する
         </Button>
-      )}
+        {latestQuote && (
+          <Button variant="cancel" onClick={() => setRequoteOpen(false)}>
+            キャンセル
+          </Button>
+        )}
+      </div>
     </form>
   );
 
