@@ -46,3 +46,15 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha # 前回のビルドを使い回して速くする
           cache-to: type=gha,mode=max
+
+      - name: VPS に反映する（VPS では deploy.sh だけが動く）
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh -T -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new ubuntu@ik1-322-21277.vs.sakura.ne.jp
+
+
+
