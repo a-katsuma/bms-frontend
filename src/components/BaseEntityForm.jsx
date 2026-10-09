@@ -224,7 +224,10 @@ export default function BaseEntityForm({
       })
       .catch((error) => {
         console.error("送信エラー:", error);
-        showError("処理に失敗しました。入力内容を確認してください。");
+                showError(
+          error.response?.data?.errorMessage ||
+            "処理に失敗しました。入力内容を確認してください。",
+        );
       });
   }; // ★ここで handleSubmit を正しく閉じる
 

@@ -2154,3 +2154,50 @@ textarea.textarea-sm {
     background-image: linear-gradient(rgba(9, 132, 227, 0.06), rgba(9, 132, 227, 0.06));
   }
 }
+
+/* ===== デモ環境の案内（ログイン画面。公開デモのときだけ表示） ===== */
+/* 案内の分だけ縦に伸びるように、ログイン画面の高さを「最低 100vh」にする（上の .login-page を上書き） */
+.login-page {
+  height: auto;
+  min-height: 100vh;
+  padding: 20px 0;
+  box-sizing: border-box;
+}
+
+.demo-box {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  text-align: left;
+}
+
+.demo-box-title {
+  font-weight: bold;
+  color: var(--side-bg);
+  margin-bottom: 6px;
+}
+
+.demo-box-text,
+.demo-box-note,
+.demo-role-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.demo-role {
+  margin-top: 12px;
+}
+
+.demo-login-btn {
+  width: 100%;
+}
+
+.demo-role-note {
+  display: block;
+  margin-top: 4px;
+}
+
+.demo-box-note {
+  margin-top: 16px;
+  line-height: 1.6;
+}
