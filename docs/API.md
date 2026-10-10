@@ -1,4 +1,3 @@
-@@ -1,169 +0,0 @@
 # API 一覧
 
 - ベース URL：`/api`（公開環境は `https://bms-system.net/api`）
