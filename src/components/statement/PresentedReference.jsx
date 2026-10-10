@@ -30,7 +30,7 @@ export default function PresentedReference({
     return null;
   }
 
-  const label = isAdmin ? "業者→顧客" : "御社→顧客";
+  const label = isAdmin ? "発注元→顧客" : "御社→顧客";
   const lines = rows.map((row) => {
     const rate = temporaryRateOf(row, editable, policies);
     return { row, rate, amount: presentedAmount(itemAmount(row), rate) };

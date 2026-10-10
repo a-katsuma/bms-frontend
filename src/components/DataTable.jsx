@@ -1,6 +1,8 @@
 // 一覧表の共通部品
-//   columns：[{ label, key または render, align?: "left" | "center" | "right" }]
+//   columns：[{ label, key または render, align?: "left" | "center" | "right", nowrap?: true }]
 //     align を指定すると、見出しとセルの文字をそろえる（金額・数量は "right"）
+//     nowrap を true にすると、その列の文字を折り返さない（日付など、短い値の列）
+//     ※ 中央・右寄せの列は、指定しなくても折り返さない（style.css）
 //   noDataMessage：データが0件のときの文言
 export default function DataTable({
   columns,
@@ -8,7 +10,11 @@ export default function DataTable({
   pagination,
   noDataMessage = "データがありません。",
 }) {
-  const alignClass = (col) => (col.align ? `align-${col.align}` : undefined);
+  // 列の class（揃え：align-xxx、折り返さない：nowrap）
+  const cellClass = (col) =>
+    [col.align && `align-${col.align}`, col.nowrap && "nowrap"]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   return (
     <div className="table-container">
@@ -16,7 +22,7 @@ export default function DataTable({
         <thead>
           <tr>
             {columns.map((col, index) => (
-              <th key={index} className={alignClass(col)}>
+              <th key={index} className={cellClass(col)}>
                 {col.label}
               </th>
             ))}
@@ -30,7 +36,7 @@ export default function DataTable({
                   <td
                     key={colIndex}
                     data-label={col.label}
-                    className={alignClass(col)}
+                    className={cellClass(col)}
                   >
                     {col.render ? col.render(row) : row[col.key]}
                   </td>

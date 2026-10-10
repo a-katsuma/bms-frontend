@@ -11,14 +11,14 @@
   --danger: darkred;
 
   /* よく使う薄い色（業者のテーマでも変わらない） */
-  --bg-input: #fafafa;       /* 入力欄・入力エリアの背景 */
-  --bg-head: #f8f9fa;        /* 表の見出し・計算ボックスの背景 */
-  --bg-muted: #f1f2f6;       /* 小さな表の見出し・補助ボタンの hover */
-  --bg-gray: #e2e8f0;        /* 戻る・キャンセルのボタン、段階入力の見出し */
-  --border-light: #eee;      /* 表の行の区切り線 */
-  --border-dashed: #b2bec3;  /* 点線の枠（管理者用の欄・参考の枠） */
-  --info: #0984e3;           /* 青（追加・確認の枠） */
-  --danger-bg: #fdecea;      /* 赤の背景（エラーの帯・削除の行） */
+  --bg-input: #fafafa; /* 入力欄・入力エリアの背景 */
+  --bg-head: #f8f9fa; /* 表の見出し・計算ボックスの背景 */
+  --bg-muted: #f1f2f6; /* 小さな表の見出し・補助ボタンの hover */
+  --bg-gray: #e2e8f0; /* 戻る・キャンセルのボタン、段階入力の見出し */
+  --border-light: #eee; /* 表の行の区切り線 */
+  --border-dashed: #b2bec3; /* 点線の枠（管理者用の欄・参考の枠） */
+  --info: #0984e3; /* 青（追加・確認の枠） */
+  --danger-bg: #fdecea; /* 赤の背景（エラーの帯・削除の行） */
 }
 
 * {
@@ -158,12 +158,9 @@ header h1 {
   color: var(--side-bg);
 }
 
+/* カードの中の文章：特別な見た目は付けない（注意書きは .note・.text-muted・.text-danger などのクラスで指定する）
+   ※ 以前は赤い太字・下線にしていたが、注意書きまで赤くなっていたため、やめた */
 .card p {
-  color: var(--danger);
-  font-weight: bold;
-  padding: 10px 0;
-  border-bottom: 2px solid var(--border);
-  display: inline-block;
   margin-bottom: 10px;
 }
 
@@ -261,7 +258,6 @@ textarea {
   filter: none;
 }
 
-
 /* --- テーブル --- */
 .data-table {
   width: 100%;
@@ -294,7 +290,6 @@ textarea {
   text-align: right;
   font-variant-numeric: tabular-nums; /* 数字の幅をそろえて、桁を見やすくする */
 }
-
 
 .data-table .btn {
   padding: 5px 15px;
@@ -450,10 +445,6 @@ textarea.field-error {
     font-size: 0.8rem;
   }
 }
-
-
-
-
 
 /* --- 詳細リスト --- */
 .detail-list {
@@ -658,61 +649,7 @@ details[open] summary::before {
   body {
     flex-direction: column;
   }
-
-  .sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
-    padding: 15px 0;
-  }
-
-  .sidebar-logo {
-    margin-bottom: 15px;
-  }
-
-  .sidebar-nav-container {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    flex-grow: 0;
-    padding: 0 10px;
-  }
-
-  .sidebar ul {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    flex-grow: 0;
-    margin: 0;
-  }
-
-  .sidebar ul li a {
-    padding: 10px 15px;
-    font-size: 0.85rem;
-    border-left: none;
-    border-bottom: 3px solid transparent;
-  }
-
-  .sidebar ul li a.active {
-    border-bottom: 3px solid var(--accent);
-  }
-
-  .sidebar-footer {
-    padding: 0;
-    margin-top: 5px;
-    text-align: center;
-    width: auto;
-  }
-
-  .logout-btn {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    width: auto;
-    display: inline-block;
-  }
+  /* サイドバー（スマホ）は、ファイル末尾の「スマホのメニュー（☰）」で指定する */
 
   .main-content {
     margin-left: 0;
@@ -776,7 +713,7 @@ details[open] summary::before {
     padding: 12px 5px;
   }
 
-    /* 項目名を出さないセル
+  /* 項目名を出さないセル
      ・最後の列のうち、ボタンが入っているセル（操作の列）
      ・「データがありません」の行（colSpan で1つにまとめたセル）
      ※ 判定履歴のように最後の列が「ファイル」の表もあるため、:last-child だけでは消さない */
@@ -784,7 +721,6 @@ details[open] summary::before {
   .data-table td[colspan]::before {
     display: none;
   }
-
 
   /* 詳細リストのスマホ対応 */
   .card .detail-list {
@@ -881,19 +817,39 @@ details[open] summary::before {
   align-items: center;
 }
 
+/* 目のマークに文字が隠れないよう、入力欄の右側に余白を取る */
+.password-input-wrapper input {
+  padding-right: 44px;
+}
+
+/* 目のマーク（入力欄の右端に重ねる） */
 .password-toggle-btn {
-  margin-bottom: 20px; /* ★追加 */
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   background: none;
   border: none;
-  color: var(--accent);
-  font-size: 0.85rem;
-  font-weight: bold;
+  border-radius: 6px;
+  color: var(--text-muted);
   cursor: pointer;
-  text-align: left;
 }
 
 .password-toggle-btn:hover {
-  text-decoration: underline;
+  color: var(--text);
+  background-color: var(--bg-muted);
+}
+
+/* キーボード（Tab）で選んだときに枠を出す */
+.password-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* --- 事前承認設定画面スタイル --- */
@@ -1083,7 +1039,6 @@ details[open] summary::before {
     grid-template-columns: 1fr;
   }
 }
-
 
 /* 確認・入力ダイアログ（DialogHost） */
 .dialog-overlay {
@@ -1437,15 +1392,33 @@ details[open] summary::before {
 }
 
 /* --- 余白 --- */
-.mt-10 { margin-top: 10px; }
-.mt-15 { margin-top: 15px; }
-.mt-20 { margin-top: 20px; }
-.mt-25 { margin-top: 25px; }
-.mb-10 { margin-bottom: 10px; }
-.mb-15 { margin-bottom: 15px; }
-.mb-20 { margin-bottom: 20px; }
-.ml-8 { margin-left: 8px; }
-.ml-10 { margin-left: 10px; }
+.mt-10 {
+  margin-top: 10px;
+}
+.mt-15 {
+  margin-top: 15px;
+}
+.mt-20 {
+  margin-top: 20px;
+}
+.mt-25 {
+  margin-top: 25px;
+}
+.mb-10 {
+  margin-bottom: 10px;
+}
+.mb-15 {
+  margin-bottom: 15px;
+}
+.mb-20 {
+  margin-bottom: 20px;
+}
+.ml-8 {
+  margin-left: 8px;
+}
+.ml-10 {
+  margin-left: 10px;
+}
 
 /* 行の間隔を広げる（変更内容の一覧など） */
 .lines {
@@ -1463,7 +1436,8 @@ details[open] summary::before {
   background-color: #e8f8f5; /* 追加 */
 }
 
-.row-changed,.row-adjusted {
+.row-changed,
+.row-adjusted {
   background-color: #fff8e1; /* 変更 */
 }
 
@@ -1894,7 +1868,6 @@ textarea.textarea-sm {
   width: auto; /* スマホでも全幅にしない */
 }
 
-
 /* 帯の中の操作ボタン（文章の下に改行して置く。スマホでも全幅にしない） */
 .alert-action {
   margin: 10px 0 8px;
@@ -1922,7 +1895,6 @@ textarea.textarea-sm {
   gap: 6px;
   min-width: 0;
 }
-
 
 /* ===== 緊急・追加作業：顧客向けプレビュー（サイドバーなしの全画面。App の fullScreen） ===== */
 .fullscreen-content {
@@ -2076,7 +2048,6 @@ textarea.textarea-sm {
   }
 }
 
-
 /* 毎次明細：受注済みから取り込むダイアログ（表を出すので幅を広げる） */
 .dialog.dialog-wide {
   max-width: 760px;
@@ -2125,7 +2096,6 @@ textarea.textarea-sm {
   white-space: nowrap; /* 金額は折り返さない */
 }
 
-
 /* 一覧の絞り込み（緊急・追加作業）：見出しの下にプルダウン。PC は横に2つ、スマホは縦に並べる */
 .filter-grid {
   display: grid;
@@ -2157,7 +2127,10 @@ textarea.textarea-sm {
    棟をまとめたセル（group-cell）は、ほかの行にもまたがるので色づけない */
 @media (hover: hover) {
   .data-table.detail-grid tbody tr:hover td:not(.group-cell) {
-    background-image: linear-gradient(rgba(9, 132, 227, 0.06), rgba(9, 132, 227, 0.06));
+    background-image: linear-gradient(
+      rgba(9, 132, 227, 0.06),
+      rgba(9, 132, 227, 0.06)
+    );
   }
 }
 
@@ -2208,7 +2181,6 @@ textarea.textarea-sm {
   line-height: 1.6;
 }
 
-
 /* =====================================================
    UI調整（太字・文字サイズ・合計欄・日付の入力欄）
    ※ 既存の指定より後ろに置くため、ファイルの末尾に書く
@@ -2227,12 +2199,12 @@ h4 {
 
 /* --- 文字サイズ（PC の値。スマホは下の @media で値だけ変える） --- */
 :root {
-  --fs-page-title: 1.6rem;  /* ページの見出し（h1） */
-  --fs-logo: 1.4rem;        /* サイドバーのロゴ */
-  --fs-card-title: 1.1rem;  /* カードの見出し（h3） */
-  --fs-greeting: 1rem;      /* 「お疲れ様です、○○さん」 */
-  --fs-filter: 1rem;        /* あいうえお検索 */
-  --fs-total: 1.15rem;      /* 合計欄の合計金額 */
+  --fs-page-title: 1.6rem; /* ページの見出し（h1） */
+  --fs-logo: 1.4rem; /* サイドバーのロゴ */
+  --fs-card-title: 1.1rem; /* カードの見出し（h3） */
+  --fs-greeting: 1rem; /* 「お疲れ様です、○○さん」 */
+  --fs-filter: 1rem; /* あいうえお検索 */
+  --fs-total: 1.15rem; /* 合計欄の合計金額 */
 }
 
 header h1 {
@@ -2323,7 +2295,9 @@ header h1 {
   input[type="date"] {
     display: block;
     min-width: 0;
-    min-height: calc(1.2em + 26px); /* 空のときに高さがつぶれないよう、ほかの入力欄にそろえる */
+    min-height: calc(
+      1.2em + 26px
+    ); /* 空のときに高さがつぶれないよう、ほかの入力欄にそろえる */
     -webkit-appearance: none;
     appearance: none;
   }
@@ -2367,24 +2341,129 @@ header h1 {
   border-left-color: rgba(231, 76, 60, 0.6);
 }
 
-/* スマホ（768px以下）：横並びのメニューに合わせる */
-@media screen and (max-width: 768px) {
-  .sidebar .sidebar-footer {
-    margin-top: 0;
-    padding: 0 0 0 8px;
-    border-top: none;
-    border-left: 1px solid rgba(255, 255, 255, 0.15); /* 縦線で区切り、押し間違いを防ぐ */
+/* =====================================================
+   スマホ・タブレットのメニュー（☰）：上は細い帯（ロゴと ☰）、メニューは左から出てくる引き出し
+   PC（1025px以上）では ☰ と暗い幕を出さない
+   ===================================================== */
+.menu-toggle,
+.sidebar-overlay {
+  display: none;
+}
+
+@media screen and (max-width: 1024px) {
+  /* サイドバーの幅（250px）をやめて、本文を画面いっぱいに使う */
+  .app-container {
+    flex-direction: column;
   }
 
-  .sidebar .logout-btn {
-    width: auto;
-    padding: 10px 15px;
-    font-size: 0.85rem;
-    border-left: none;
-    border-bottom: 3px solid transparent;
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    max-width: 100%;
   }
 
-  .sidebar .logout-btn:hover {
-    border-bottom-color: rgba(231, 76, 60, 0.6);
+  /* 上の帯（スクロールしても上に残る） */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: auto;
+    min-height: 56px;
+    padding: 6px 8px 6px 16px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sidebar-logo {
+    margin-bottom: 0;
+    text-align: left;
+  }
+
+  /* ☰ ／ × ボタン（開いている間も、暗い幕より上に出して × で閉じられるようにする） */
+  .menu-toggle {
+    position: relative;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--white);
+    cursor: pointer;
+  }
+
+  .menu-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* 後ろの暗い幕 */
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  /* メニュー本体：左から出てくる引き出し（中の見た目は PC のサイドバーと同じ） */
+  .sidebar-nav-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1100;
+    width: 260px;
+    max-width: 80vw;
+    padding: 24px 0 16px;
+    overflow-y: auto;
+    background-color: var(--side-bg);
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+
+  .sidebar-nav-container.is-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* 動きを減らす設定の端末では、引き出しのアニメーションをしない */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-nav-container {
+    transition: none;
+  }
+}
+
+/* =====================================================
+   一覧表（data-table）：短い値を折り返さない
+   ===================================================== */
+/* 中央・右寄せのセル（区分・状態・金額・操作など、短い値の列）は折り返さない
+   ※ 見出し（th）は長いことがあるので、折り返しを残す */
+.data-table td.align-center,
+.data-table td.align-right {
+  white-space: nowrap;
+}
+
+/* 表の中のボタンの文字（「開く」「詳細」など）を折り返さない */
+.data-table .btn {
+  white-space: nowrap;
+}
+
+/* 列が多くて入りきらないとき（タブレットなど）は、カードからはみ出さずに表だけを横にスクロールする */
+.table-container {
+  overflow-x: auto;
+}
+
+/* PC・タブレット：セルの左右の余白を少し詰めて、文章の列に幅を回す（スマホのカード表示は変えない） */
+@media screen and (min-width: 769px) {
+  .data-table th,
+  .data-table td {
+    padding: 12px 10px;
   }
 }

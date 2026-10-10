@@ -11,7 +11,7 @@ export default function CompanyEdit() {
 
   return (
     <BaseEntityForm
-      title="業者情報編集"
+      title="発注元情報編集"
       apiEndpoint="/companys"
       idKey="companyId"
       labels={FORM_LABELS.company}

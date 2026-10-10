@@ -24,7 +24,7 @@ export default function ExtraWorkFields({
 
   // 合計欄（当社→業者・加算割合・業者→顧客。税率の入力は業者→顧客の下に置く）
   const totalItems = [
-    { label: "当社→業者（税別）", value: yen(totals.ourSubtotal) },
+    { label: "当社→発注元（税別）", value: yen(totals.ourSubtotal) },
     {
       label: "加算割合",
       value:
@@ -35,7 +35,7 @@ export default function ExtraWorkFields({
         ),
     },
     {
-      label: "業者→顧客（税別）",
+      label: "発注元→顧客（税別）",
       value: totals.presentedSubtotal == null ? "-" : yen(totals.presentedSubtotal),
     },
     {
@@ -54,7 +54,7 @@ export default function ExtraWorkFields({
     },
     { label: "消費税", value: totals.tax == null ? "-" : yen(totals.tax) },
     {
-      label: "業者→顧客（税込）",
+      label: "発注元→顧客（税込）",
       value: <strong>{totals.total == null ? "-" : yen(totals.total)}</strong>,
     },
   ];

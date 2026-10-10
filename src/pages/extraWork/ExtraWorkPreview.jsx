@@ -76,7 +76,7 @@ export default function ExtraWorkPreview() {
 
   const handleOrder = async () => {
     const ok = await confirm(
-      `この内容（合計 ${yen(totals.total)}・税込）で受注しますか？\n受注すると、業者の代表ユーザーにお知らせメールを送ります。`,
+      `この内容（合計 ${yen(totals.total)}・税込）で受注しますか？\n受注すると、発注元の代表ユーザーにお知らせメールを送ります。`,
       { title: "受注", okLabel: "受注する" },
     );
     if (!ok) return;

@@ -164,7 +164,7 @@ export default function ExtraWorkEdit() {
   const summaryItems = [
     { label: "案件名", value: project.projectName },
     { label: "顧客名", value: project.clientName },
-    { label: "発注業者", value: project.companyName },
+    { label: "発注元", value: project.companyName },
     {
       label: "状態",
       value: (
@@ -249,7 +249,7 @@ export default function ExtraWorkEdit() {
         {!isBilled && rate == null && (
           <div className="alert alert-danger">
             実施日（{form.workDate || "未入力"}
-            ）の時点で、業者の事前承認が「承認する」になっていないため保存できません。実施日を確認するか、業者に事前承認の設定を依頼してください。
+            ）の時点で、発注元の事前承認が「承認する」になっていないため保存できません。実施日を確認するか、発注元に事前承認の設定を依頼してください。
           </div>
         )}
         {!isBilled && isOrdered && (

@@ -40,7 +40,7 @@ export default function ProjectRegister() {
       })
       .catch((err) => {
         console.error("フォームデータ取得エラー:", err);
-        showError("顧客・業者の一覧の取得に失敗しました。");
+        showError("顧客・発注元の一覧の取得に失敗しました。");
       });
   }, []);
 

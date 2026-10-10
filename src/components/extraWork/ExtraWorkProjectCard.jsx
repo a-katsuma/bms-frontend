@@ -69,7 +69,7 @@ export default function ExtraWorkProjectCard({ work, projectId, isAdmin }) {
           items={[
             ...headItems,
             {
-              label: "業者→顧客（税込）",
+              label: "発注元→顧客（税込）",
               value: yen(
                 totalsFromSubtotal(work.presentedSubtotal, work.taxRate).total,
               ),

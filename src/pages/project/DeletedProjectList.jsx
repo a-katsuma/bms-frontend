@@ -60,7 +60,7 @@ export default function DeletedProjectList() {
   const columns = [
     { label: "顧客名", key: "clientName" },
     { label: "案件名", key: "projectName" },
-    { label: "発注業者", key: "companyName" },
+    { label: "発注元", key: "companyName" },
     { label: "削除日時", render: (p) => formatDateTime(p.deletedAt) },
     {
       label: "操作",

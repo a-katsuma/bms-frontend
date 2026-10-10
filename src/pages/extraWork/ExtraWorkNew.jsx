@@ -114,7 +114,7 @@ export default function ExtraWorkNew() {
       ? "事前承認なし"
       : `承認する ${Number(co.rateOnDate)}%`);
 
-  // 案件名：手で直していなければ、区分・実施日・場所（なければ依頼主）から自動
+    // 案件名：手で直していなければ、実施日・依頼主・依頼内容から自動
   const name = nameEdited ? projectName : autoProjectName(form);
 
   const handleSave = () => {
@@ -123,7 +123,7 @@ export default function ExtraWorkNew() {
       return;
     }
     if (!companyId) {
-      showError("業者を選択してください。");
+      showError("発注元を選択してください。");
       return;
     }
     setProcessing(true);
@@ -152,7 +152,7 @@ export default function ExtraWorkNew() {
       <PageHeader title="緊急・追加作業の新規受注" />
 
       <div className="card">
-        <h3>① 顧客・業者</h3>
+        <h3>① 顧客・発注元</h3>
         <div className="form-group mb-15">
           <label>顧客</label>
           <div className="picker-row">
@@ -185,7 +185,7 @@ export default function ExtraWorkNew() {
         </div>
 
         <div className="form-group">
-          <label>業者</label>
+          <label>発注元</label>
           <select
             value={companyId}
             onChange={(e) => setCompanyId(e.target.value)}
@@ -203,7 +203,7 @@ export default function ExtraWorkNew() {
           </select>
           <div className="note mt-5">
             ※実施日（{form.workDate || "未入力"}
-            ）の時点で、事前承認が「承認する」の業者だけ選べます。この顧客の案件がある業者を上に出しています。
+            ）の時点で、事前承認が「承認する」の発注元だけ選べます。この顧客の案件がある発注元を上に出しています。
           </div>
         </div>
       </div>
@@ -214,7 +214,7 @@ export default function ExtraWorkNew() {
           <div className="alert alert-danger">
             実施日（{form.workDate || "未入力"}
             ）の時点で、{company.companyName}
-            の事前承認が「承認する」になっていないため登録できません。実施日か業者を確認してください。
+            の事前承認が「承認する」になっていないため登録できません。実施日か発注元を確認してください。
           </div>
         )}
         <ExtraWorkFields

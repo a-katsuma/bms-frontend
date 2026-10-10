@@ -86,7 +86,7 @@ export default function ClientDetail() {
 
   const projectColumns = [
     { label: "案件名", key: "projectName" },
-    ...(isAdmin ? [{ label: "発注業者", key: "companyName" }] : []),
+    ...(isAdmin ? [{ label: "発注元", key: "companyName" }] : []),
     { label: "案件状態", key: "status" },
     {
       label: "操作",

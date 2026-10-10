@@ -91,15 +91,18 @@ export const emptyWorkForm = (taxRate) => ({
   items: [newExtraWorkItem()],
 });
 
-// 案件名の初期値：【区分】MM/dd 場所（なければ依頼主）。30文字まで（サーバーと同じ作り方）
+// 案件名の初期値：MM/dd 依頼主 依頼内容。30文字まで（サーバーと同じ作り方）
 export const PROJECT_NAME_MAX = 30;
 export const autoProjectName = (f) => {
   const date = f.workDate
     ? `${f.workDate.slice(5, 7)}/${f.workDate.slice(8, 10)}`
     : "";
-  const where =
-    String(f.location ?? "").trim() || String(f.requester ?? "").trim();
-  return `【${f.workType || "区分"}】${date} ${where}`
-    .trim()
+  const requester = String(f.requester ?? "").trim();
+  const content = String(f.content ?? "").trim();
+  // 入力されたものだけを空白でつなぐ（入力の途中で、空白が2つ続かないように）
+  return [date, requester, content]
+    .filter(Boolean)
+    .join(" ")
     .slice(0, PROJECT_NAME_MAX);
 };
+
