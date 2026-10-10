@@ -261,7 +261,7 @@ export default function ProjectDetail() {
       ),
     },
     { label: "案件名", value: project.projectName },
-    { label: isAdmin ? "発注業者" : "担当業者", value: project.companyName },
+    { label: "発注元", value: project.companyName },
     { label: "契約種別", value: project.contractType },
     ...(isException
       ? [{ label: "受注", value: "事前承認（見積りなし）" }]
@@ -525,7 +525,7 @@ export default function ProjectDetail() {
                   <div className="mb-20">
                     {isUnjudged && !isExpired ? (
                       <>
-                        <p>この見積を判定する</p>
+                        <h4 className="section-title">この見積を判定する</h4>
                         <div className="action-buttons quote-action-buttons flex-row">
                           <Button
                             type="button"

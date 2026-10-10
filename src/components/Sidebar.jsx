@@ -1,13 +1,42 @@
-import { NavLink, useNavigate } from "react-router";
+import { useState, useEffect } from "react";
+import { NavLink, useNavigate, useLocation } from "react-router";
 import { useSetAtom } from "jotai";
 import { loginUserAtom } from "../atoms/loginUserAtom";
 import { axiosInstance } from "../api/axiosInstance";
+import { useMediaQuery } from "../hooks/useMediaQuery";
+
+// スマホ（style.css の @media (max-width: 768px) と同じ境目）
+const MOBILE_QUERY = "(max-width: 768px)";
 
 export default function Sidebar({ roleFlag }) {
   const isAdmin = roleFlag === 1;
   const isRepresentative = roleFlag === 2;
   const setLoginUser = useSetAtom(loginUserAtom);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // スマホのメニュー（☰）を開いているか。PC では使わない（メニューは常に表示）
+  const isMobile = useMediaQuery(MOBILE_QUERY);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // 画面を移動したとき・PC の幅に広げたときは閉じる
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname, isMobile]);
+
+  // 開いている間：Esc キーで閉じる・後ろの画面をスクロールさせない
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
 
   const handleLogout = async () => {
     try {
@@ -22,12 +51,66 @@ export default function Sidebar({ roleFlag }) {
     }
   };
 
+  // メニューの中のリンクを押したら閉じる（今いる画面のリンクを押したときも閉じるため）
+  const handleMenuClick = (e) => {
+    if (e.target.closest("a")) setMenuOpen(false);
+  };
+
   return (
     <nav className="sidebar">
       <div className="sidebar-logo">BMS System</div>
 
-      {/* メニューとログアウトボタンをまとめるコンテナ */}
-      <div className="sidebar-nav-container">
+      {/* スマホだけ表示：メニューを開く・閉じるボタン（☰ ／ ×） */}
+      <button
+        type="button"
+        className="menu-toggle"
+        onClick={() => setMenuOpen((prev) => !prev)}
+        aria-expanded={menuOpen}
+        aria-controls="sidebar-menu"
+        aria-label={menuOpen ? "メニューを閉じる" : "メニューを開く"}
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
+          {menuOpen ? (
+            <>
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+            </>
+          ) : (
+            <>
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="17" />
+            </>
+          )}
+        </svg>
+      </button>
+
+      {/* スマホでメニューを開いている間の、後ろの暗い幕（押すと閉じる） */}
+      {menuOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* メニューとログアウトボタンをまとめるコンテナ
+          スマホでは左から出てくる引き出し。閉じている間は Tab で入れないようにする（inert） */}
+      <div
+        id="sidebar-menu"
+        className={`sidebar-nav-container${menuOpen ? " is-open" : ""}`}
+        onClick={handleMenuClick}
+        inert={isMobile && !menuOpen}
+      >
         <ul>
           {/* ホーム */}
           <li>
@@ -52,7 +135,7 @@ export default function Sidebar({ roleFlag }) {
           {isAdmin && (
             <>
               <li>
-                <NavLink to="/companys">業者管理</NavLink>
+                <NavLink to="/companys">発注元管理</NavLink>
               </li>
               <li>
                 <NavLink to="/masters">常用項目管理</NavLink>

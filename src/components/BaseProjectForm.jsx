@@ -74,7 +74,7 @@ export default function BaseProjectForm({
                 onChange={onChange}
                 className={errors.companyId ? "field-error" : ""}
               >
-                <option value="">発注業者を選択してください</option>
+                <option value="">発注元を選択してください</option>
                 {companies.map((comp) => (
                   <option key={comp.companyId} value={comp.companyId}>
                     {comp.companyName}

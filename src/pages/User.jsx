@@ -5,6 +5,7 @@ import { loginUserAtom } from "../atoms/loginUserAtom";
 import { userApi } from "../api/userApi";
 import { demoApi } from "../api/demoApi";
 import Button from "../atoms/Button";
+import PasswordInput from "../atoms/PasswordInput";
 
 // デモ用ログインのボタン（公開デモの環境だけ表示する）
 const DEMO_ROLES = [
@@ -15,12 +16,12 @@ const DEMO_ROLES = [
   },
   {
     role: "MASTER",
-    label: "業者（代表）として試す",
+    label: "発注元（代表）として試す",
     note: "発注元の代表。見積りの判定・事前承認・自社ユーザーの管理",
   },
   {
     role: "GENERAL",
-    label: "業者（一般）として試す",
+    label: "発注元（一般）として試す",
     note: "発注元の一般ユーザー。見積りの判定・明細の閲覧",
   },
 ];
@@ -108,13 +109,12 @@ export default function User() {
             </div>
 
             <div className="login-form-group-mb">
-              <label className="login-label">パスワード</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="パスワード"
+                autoComplete="current-password"
               />
             </div>
 

@@ -132,7 +132,7 @@ export default function BillingSummaryCard({
         {isAdmin && (
           <div className="billing-summary-panel">
             <div className="billing-summary-title">
-              緊急・追加作業（この顧客・業者）
+              緊急・追加作業（この顧客・発注元）
             </div>
             {extraWorkSummary && extraWorkSummary.total > 0 ? (
               <>

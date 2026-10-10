@@ -180,7 +180,7 @@ export default function StatementDetail() {
         ? `\n\n※実費が0円の項目があります：${zeroVariables.join("、")}`
         : "";
     const ok = await confirm(
-      `${formatMonth(statement.billingMonth)}の明細を、発行日 ${issuedDate} で確定しますか？\n確定すると業者に公開され、編集できなくなります。${warning}`,
+      `${formatMonth(statement.billingMonth)}の明細を、発行日 ${issuedDate} で確定しますか？\n確定すると発注元に公開され、編集できなくなります。${warning}`,
       { title: "明細の確定", okLabel: "確定する" },
     );
     if (!ok) return;
@@ -192,7 +192,7 @@ export default function StatementDetail() {
 
   const handleUnconfirm = async () => {
     const ok = await confirm(
-      "確定を解除して下書きに戻しますか？\n解除中は業者から見えなくなります。",
+      "確定を解除して下書きに戻しますか？\n解除中は発注元から見えなくなります。",
       { title: "確定の解除", okLabel: "解除する" },
     );
     if (!ok) return;
@@ -330,7 +330,7 @@ export default function StatementDetail() {
             {editable && unapprovedCount > 0 && (
               <div className="alert alert-danger mb-10">
                 ※実施日の時点で事前承認がない行が {unapprovedCount}{" "}
-                件あります（「承認なし」の行）。業者の了承を得てください（その行の業者→顧客の額は、参考の欄に出ません）。
+                件あります（「承認なし」の行）。発注元の了承を得てください（その行の発注元→顧客の額は、参考の欄に出ません）。
               </div>
             )}
             <TemporaryItemsTable

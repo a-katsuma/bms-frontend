@@ -8,7 +8,7 @@ export default function CompanyRegister() {
 
   return (
     <BaseEntityForm
-      title="新規業者登録"
+      title="新規発注元登録"
       apiEndpoint="/companys"
       idKey="companyId"
       labels={FORM_LABELS.company}

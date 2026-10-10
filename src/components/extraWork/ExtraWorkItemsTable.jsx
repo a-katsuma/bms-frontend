@@ -105,11 +105,11 @@ export default function ExtraWorkItemsTable({ items, markupRate, onChange }) {
                 <td colSpan={COLS.length}>
                   <div className="base-sub">
                     <span className="base-sub-field">
-                      <span className="base-sub-label">当社→業者</span>
+                      <span className="base-sub-label">当社→発注元</span>
                       {yen(amount)}
                     </span>
                     <span className="base-sub-field">
-                      <span className="base-sub-label">業者→顧客（税別）</span>
+                      <span className="base-sub-label">発注元→顧客（税別）</span>
                       {presentedText(amount)}
                     </span>
                   </div>
@@ -132,8 +132,8 @@ export default function ExtraWorkItemsTable({ items, markupRate, onChange }) {
             <th className="align-right">数量</th>
             <th className="align-left">単位</th>
             <th className="align-right">当社単価</th>
-            <th className="align-right">当社→業者</th>
-            <th className="align-right">業者→顧客（税別）</th>
+            <th className="align-right">当社→発注元</th>
+            <th className="align-right">発注元→顧客（税別）</th>
             <th className="align-center">操作</th>
           </tr>
         </thead>

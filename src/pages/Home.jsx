@@ -72,7 +72,7 @@ export default function Home() {
   // ★ 上部セクション用のカラム定義
   const topColumns = [
     { label: "顧客名", key: "clientName" },
-    ...(isAdmin ? [{ label: "発注業者", key: "companyName" }] : []),
+    ...(isAdmin ? [{ label: "発注元", key: "companyName" }] : []),
     { label: "案件名", key: "projectName" },
     {
       label: isAdmin ? "見積状態" : "判定期限",
@@ -115,7 +115,7 @@ export default function Home() {
   // ★ 下部セクション用のカラム定義
   const bottomColumns = [
     { label: "顧客名", key: "clientName" },
-    ...(isAdmin ? [{ label: "発注業者", key: "companyName" }] : []),
+    ...(isAdmin ? [{ label: "発注元", key: "companyName" }] : []),
     { label: "案件名", key: "projectName" },
     {
       label: isAdmin ? "判定期限" : "見積状態",

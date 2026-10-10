@@ -37,7 +37,7 @@ export default function CompanyDetail() {
   const { handleDeleteWithCheck } = useDeleteWithCheck(
     `/companys/${id}`,
     "/companys",
-    "業者情報を削除しました。",
+    "発注元情報を削除しました。",
     async () => {
       return projects.length > 0;
     },
@@ -175,7 +175,7 @@ export default function CompanyDetail() {
   }
 
   const detailItems = [
-    { label: "業者名", value: company.companyName },
+    { label: "発注元名", value: company.companyName },
     { label: "フリガナ", value: company.companyKana },
     { label: "郵便番号", value: formatPostal(company.companyPostalcode) },
     { label: "住所", value: company.companyAddress },
@@ -264,7 +264,7 @@ export default function CompanyDetail() {
 
   return (
     <div className="content-wrapper">
-      <PageHeader title="業者詳細" />
+      <PageHeader title="発注元詳細" />
 
       <AlertMessage
         message={successMessage}
@@ -274,7 +274,7 @@ export default function CompanyDetail() {
       />
 
       <div className="card">
-        <h3>業者情報</h3>
+        <h3>発注元情報</h3>
         <DetailList items={detailItems} />
 
         <div className="action-buttons-form">
@@ -289,7 +289,7 @@ export default function CompanyDetail() {
             削除
           </Button>
           <Button to="/companys" variant="cancel">
-            業者一覧へ戻る
+            発注元一覧へ戻る
           </Button>
         </div>
       </div>
@@ -316,7 +316,7 @@ export default function CompanyDetail() {
             />
           </>
         ) : (
-          <NoDataMessage message="現在、この業者に紐づく案件はありません。" />
+          <NoDataMessage message="現在、この発注元に紐づく案件はありません。" />
         )}
       </div>
     </div>

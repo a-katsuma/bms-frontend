@@ -9,14 +9,14 @@ export const FORM_LABELS = {
   project: {
     projectName: "案件名",
     clientId: "顧客",
-    companyId: "発注業者",
+    companyId: "発注元",
     projectStaffname: "担当者名",
     contractType: "契約種別",
     status: "案件状態",
     projectRemarks: "特記事項",
   },
   company: {
-    companyName: "業者名",
+    companyName: "発注元名",
     companyKana: "フリガナ",
     companyPostalcode: "郵便番号",
     companyAddress: "住所",

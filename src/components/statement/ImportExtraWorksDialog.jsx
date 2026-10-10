@@ -52,7 +52,7 @@ export default function ImportExtraWorksDialog({
       >
         <h3 className="dialog-title">受注済みの緊急・追加作業を取り込む</h3>
         <div className="dialog-message note">
-          この明細と同じ顧客・業者で、受注済み・未請求・未取り込みの作業です。作業の行ごとに、緊急・追加作業の行としてコピーします（取り込んだ行は、明細の上では直せません）。
+          この明細と同じ顧客・発注元で、受注済み・未請求・未取り込みの作業です。作業の行ごとに、緊急・追加作業の行としてコピーします（取り込んだ行は、明細の上では直せません）。
         </div>
 
         {candidates === null ? (
@@ -69,7 +69,7 @@ export default function ImportExtraWorksDialog({
                   <th>実施日</th>
                   <th>場所</th>
                   <th>依頼内容</th>
-                  <th className="num">当社→業者</th>
+                  <th className="num">当社→発注元</th>
                 </tr>
               </thead>
               <tbody>

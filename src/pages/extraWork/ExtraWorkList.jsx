@@ -92,7 +92,7 @@ export default function ExtraWorkList() {
   };
 
   const columns = [
-    { label: "実施日", render: (w) => formatDate(w.workDate) },
+       { label: "実施日", nowrap: true, render: (w) => formatDate(w.workDate) },
     {
       label: "区分",
       align: "center",
@@ -101,11 +101,11 @@ export default function ExtraWorkList() {
       ),
     },
     { label: "顧客", key: "clientName" },
-    { label: "業者", key: "companyName" },
+    { label: "発注元", key: "companyName" },
     { label: "場所", render: (w) => w.location || "-" },
     { label: "依頼内容", key: "content" },
     {
-      label: "業者→顧客（税込）",
+      label: "発注元→顧客（税込）",
       align: "right",
       render: (w) =>
         yen(totalsFromSubtotal(w.presentedSubtotal, w.taxRate).total),
@@ -154,7 +154,7 @@ export default function ExtraWorkList() {
         <h3>作業一覧</h3>
 
         <div className="note mb-10">
-          ※見積りを通さず、業者の事前承認で受ける作業です。1件ごとに案件（契約種別「臨時」）を作ります。請求は、作業の画面で［請求済みにする］か、同じ顧客・業者の毎次明細に取り込みます。
+          ※事前承認が有効な発注元の案件に限り、見積りを省略して受注する作業です。請求は、作業の画面で［請求済みにする］か、同じ顧客・発注元の毎次明細に取り込みます。
         </div>
 
                 {/* 絞り込み：1行目は表示の切り替え、2行目は顧客・業者（見出しの下にプルダウン。PC は横に2つ、スマホは縦） */}
@@ -192,7 +192,7 @@ export default function ExtraWorkList() {
             </select>
           </div>
           <div className="form-group">
-            <label>業者</label>
+            <label>発注元</label>
             <select
               value={companyId}
               onChange={(e) => setFilter("companyId", e.target.value)}

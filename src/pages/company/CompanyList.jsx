@@ -46,7 +46,7 @@ export default function CompanyList() {
   };
 
   const columns = [
-    { label: "業者名", key: "companyName" },
+    { label: "発注元名", key: "companyName" },
     { label: "郵便番号", key: "formattedCompanyPostalcode" },
     { label: "住所", key: "companyAddress" },
     { label: "電話番号", key: "formattedCompanyPhone" },
@@ -63,7 +63,7 @@ export default function CompanyList() {
   return (
     // 管理者専用なので `theme-contractee` などの切り替えは不要！
     <div className="content-wrapper">
-      <PageHeader title="業者管理" />
+      <PageHeader title="発注元管理" />
 
       <AlertMessage
         message={successMessage}
@@ -75,19 +75,19 @@ export default function CompanyList() {
       {/* 管理者専用なので常に新規登録ボタンを出してOK */}
       <div className="action-bar">
         <Button to="/companys/add" variant="primary">
-          新規業者登録
+          新規発注元登録
         </Button>
       </div>
 
       <div className="card">
-        <h3>業者一覧</h3>
+        <h3>発注元一覧</h3>
 
         <KanaFilter currentKana={currentKana} onSelectKana={handleSelectKana} />
 
         {companys && companys.length > 0 ? (
           <DataTable columns={columns} data={companys} />
         ) : (
-          <NoDataMessage message="現在、登録されている業者はありません。" />
+          <NoDataMessage message="現在、登録されている発注元はありません。" />
         )}
 
         <Pagination
